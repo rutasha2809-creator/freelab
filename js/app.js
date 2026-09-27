@@ -1023,54 +1023,108 @@ const authPasswordInput = document.getElementById('authPassword');
 const authErrorEl = document.getElementById('authError');
 const authSubmitBtn = document.getElementById('authSubmitBtn');
 const authToggleBtn = document.getElementById('authToggleMode');
+const authForgotLink = document.getElementById('authForgotLink');
+const authPasswordField = document.getElementById('authPasswordField');
+const authPasswordToggle = document.getElementById('authPasswordToggle');
 const btnLogout = document.getElementById('btnLogout');
 
-let authMode = 'signin'; // 'signin' | 'signup'
+const recoveryForm = document.getElementById('recoveryForm');
+const recoveryPasswordInput = document.getElementById('recoveryPassword');
+const recoveryPasswordToggle = document.getElementById('recoveryPasswordToggle');
+const recoveryErrorEl = document.getElementById('recoveryError');
+const recoverySubmitBtn = document.getElementById('recoverySubmitBtn');
+
+function setupPasswordToggle(input, btn) {
+  btn.addEventListener('click', () => {
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.classList.toggle('is-active', show);
+  });
+}
+setupPasswordToggle(authPasswordInput, authPasswordToggle);
+setupPasswordToggle(recoveryPasswordInput, recoveryPasswordToggle);
+
+function setNotice(el, text, kind) {
+  el.hidden = false;
+  el.className = kind === 'ok' ? 'authNotice' : 'authError';
+  el.textContent = text;
+}
+
+let authMode = 'signin'; // 'signin' | 'signup' | 'forgot'
 
 function setAuthMode(mode) {
   authMode = mode;
   authErrorEl.hidden = true;
+  authPasswordField.hidden = mode === 'forgot';
+  authPasswordInput.required = mode !== 'forgot';
+  authToggleBtn.hidden = mode === 'forgot';
+  authForgotLink.hidden = mode === 'signup';
   if (mode === 'signup') {
     authSubmitBtn.textContent = 'Зарегистрироваться';
     authToggleBtn.textContent = 'Уже есть аккаунт? Войти';
+  } else if (mode === 'forgot') {
+    authSubmitBtn.textContent = 'Отправить ссылку для сброса';
+    authForgotLink.textContent = 'Назад ко входу';
   } else {
     authSubmitBtn.textContent = 'Войти';
     authToggleBtn.textContent = 'Нет аккаунта? Зарегистрироваться';
+    authForgotLink.textContent = 'Забыли пароль?';
   }
 }
 
 authToggleBtn.addEventListener('click', () => setAuthMode(authMode === 'signin' ? 'signup' : 'signin'));
+authForgotLink.addEventListener('click', () => setAuthMode(authMode === 'forgot' ? 'signin' : 'forgot'));
 
 authForm.addEventListener('submit', async e => {
   e.preventDefault();
   const email = authEmailInput.value.trim();
-  const password = authPasswordInput.value;
   authErrorEl.hidden = true;
   authSubmitBtn.disabled = true;
   try {
-    if (authMode === 'signup') {
+    if (authMode === 'forgot') {
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + window.location.pathname,
+      });
+      if (error) throw error;
+      setNotice(authErrorEl, 'Если такой e-mail зарегистрирован, на него отправлена ссылка для сброса пароля.', 'ok');
+    } else if (authMode === 'signup') {
+      const password = authPasswordInput.value;
       const { data, error } = await sb.auth.signUp({ email, password });
       if (error) throw error;
       if (!data.session) {
-        authErrorEl.hidden = false;
-        authErrorEl.style.background = '#EAF7F0';
-        authErrorEl.style.color = 'var(--green)';
-        authErrorEl.textContent = 'Проверьте почту и подтвердите e-mail, затем войдите.';
         setAuthMode('signin');
+        setNotice(authErrorEl, 'Проверьте почту и подтвердите e-mail, затем войдите.', 'ok');
       }
     } else {
+      const password = authPasswordInput.value;
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
     }
   } catch (err) {
-    authErrorEl.hidden = false;
-    authErrorEl.style.background = '#FDEAEA';
-    authErrorEl.style.color = 'var(--red)';
-    authErrorEl.textContent = err.message === 'Invalid login credentials'
+    setNotice(authErrorEl, err.message === 'Invalid login credentials'
       ? 'Неверный e-mail или пароль'
-      : (err.message || 'Ошибка входа');
+      : (err.message || 'Ошибка входа'), 'error');
   } finally {
     authSubmitBtn.disabled = false;
+  }
+});
+
+recoveryForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const password = recoveryPasswordInput.value;
+  recoveryErrorEl.hidden = true;
+  recoverySubmitBtn.disabled = true;
+  try {
+    const { error } = await sb.auth.updateUser({ password });
+    if (error) throw error;
+    recoveryMode = false;
+    showToast('Пароль обновлён');
+    const { data } = await sb.auth.getSession();
+    if (data.session) showApp(data.session); else showAuth();
+  } catch (err) {
+    setNotice(recoveryErrorEl, err.message || 'Не удалось обновить пароль', 'error');
+  } finally {
+    recoverySubmitBtn.disabled = false;
   }
 });
 
@@ -1081,6 +1135,8 @@ btnLogout.addEventListener('click', async () => {
 function showApp(session) {
   authScreenEl.hidden = true;
   appEl.hidden = false;
+  authForm.hidden = false;
+  recoveryForm.hidden = true;
   document.getElementById('sidebarEmail').textContent = session.user.email;
   initGreeting();
   fetchState();
@@ -1089,15 +1145,34 @@ function showApp(session) {
 function showAuth() {
   appEl.hidden = true;
   authScreenEl.hidden = false;
+  authForm.hidden = false;
+  recoveryForm.hidden = true;
   authForm.reset();
+  setAuthMode('signin');
 }
 
-sb.auth.onAuthStateChange((_event, session) => {
+function showRecovery() {
+  appEl.hidden = true;
+  authScreenEl.hidden = false;
+  authForm.hidden = true;
+  recoveryForm.hidden = false;
+}
+
+let recoveryMode = false;
+
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    recoveryMode = true;
+    showRecovery();
+    return;
+  }
+  if (recoveryMode) return;
   if (session) showApp(session);
   else showAuth();
 });
 
 sb.auth.getSession().then(({ data }) => {
+  if (recoveryMode) return;
   if (data.session) showApp(data.session);
   else showAuth();
 });

@@ -24,7 +24,7 @@
         <span>Email</span>
         <input type="email" id="authEmail" required autocomplete="username">
       </label>
-      <label class="field">
+      <label class="field" id="authPasswordField">
         <span>Пароль</span>
         <div class="passwordWrap">
           <input type="password" id="authPassword" required minlength="6" autocomplete="current-password">
@@ -36,6 +36,20 @@
       <div class="authError" id="authError" hidden></div>
       <button type="submit" class="btn btn--dark authSubmit" id="authSubmitBtn">Войти</button>
     </form>
+    <form id="recoveryForm" hidden>
+      <label class="field">
+        <span>Новый пароль</span>
+        <div class="passwordWrap">
+          <input type="password" id="recoveryPassword" required minlength="6" autocomplete="new-password">
+          <button type="button" class="passwordToggle" id="recoveryPasswordToggle" title="Показать пароль" tabindex="-1">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+          </button>
+        </div>
+      </label>
+      <div class="authError" id="recoveryError" hidden></div>
+      <button type="submit" class="btn btn--dark authSubmit" id="recoverySubmitBtn">Сохранить новый пароль</button>
+    </form>
+    <button type="button" class="authToggle" id="authForgotLink">Забыли пароль?</button>
     <button type="button" class="authToggle" id="authToggleMode">Нет аккаунта? Зарегистрироваться</button>
   </div>
 </div>
