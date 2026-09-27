@@ -492,12 +492,13 @@ function renderStats() {
   const isNow = offset === 0;
   const el = document.getElementById('stats');
   const spark = overallSparklineSVG();
-  // В текущем месяце подписи привычные; в остальных — месяц называем прямо,
-  // чтобы нельзя было спутать, к какому периоду относятся цифры
+  // Месяц называет только главная плитка — она и служит указателем периода.
+  // Остальные подписи постоянны: если они меняются при листании, текст «скачет»,
+  // и кажется, будто изменились сами данные
   const labelExpected = isNow ? 'Ожидается в этом месяце' : `Ожидается в ${MONTHS_PREP[month]}`;
-  const labelReceived = isNow ? 'Уже получено' : 'Оплачено';
-  const labelPending = isNow ? 'В ожидании оплаты' : 'Ожидается';
-  const labelOverdue = isNow ? 'Просрочено' : 'Просрочено всего';
+  const labelReceived = 'Уже получено';
+  const labelPending = 'В ожидании оплаты';
+  const labelOverdue = 'Просрочено всего';
   el.innerHTML = `
     <div class="tile tile--hero tile--dark">
       <div class="hero-blob"></div>
@@ -634,7 +635,10 @@ function renderPaymentsCalendar() {
       chips = shown.map(p => {
         const client = getClient(p.clientId);
         const name = client ? client.name : p.task;
-        return `<div class="chip chip--${deriveStatus(p)}">${escapeHTML(name)} · ${formatMoney(p.amount)}</div>`;
+        // В подсказке — назначение платежа: в один день у клиента может быть
+        // и аванс, и остаток, и по имени с суммой их не различить
+        const hint = `${name} · ${p.task} · ${formatMoney(p.amount)}`;
+        return `<div class="chip chip--${deriveStatus(p)}" title="${escapeHTML(hint)}">${escapeHTML(name)} · ${formatMoney(p.amount)}</div>`;
       }).join('');
       if (dayPayments.length > shown.length) {
         chips += `<div class="chip chip--more">+ещё ${dayPayments.length - shown.length}</div>`;
@@ -673,9 +677,9 @@ function renderPaymentsCalendar() {
     <div class="calendarHead">
       <span class="calendarTitle">${MONTHS_NOM[month]}${year !== new Date().getFullYear() ? ' ' + year : ''}</span>
       <div class="calendarNav">
-        <button type="button" data-action="calendar-prev">‹</button>
         ${isCurrentMonth ? '' : '<button type="button" class="calendarNavToday" data-action="calendar-today">Сегодня</button>'}
-        <button type="button" data-action="calendar-next">›</button>
+        <button type="button" class="calendarNavArrow" data-action="calendar-prev">‹</button>
+        <button type="button" class="calendarNavArrow" data-action="calendar-next">›</button>
       </div>
     </div>
     <div class="calendarLegend">
