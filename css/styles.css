@@ -1168,64 +1168,156 @@ button, input, select, textarea { font-family: inherit; }
   margin: 0 0 26px; font-size: 14.5px; line-height: 1.6; color: var(--muted); max-width: 440px;
 }
 
-/* Мини-демонстрация приложения */
-.demo {
+/* ---- Пересчёт купюр ---- */
+.cash {
+  display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 20px; align-items: center;
   background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card);
-  padding: 18px; box-shadow: var(--shadow);
+  padding: 18px 20px; box-shadow: var(--shadow); max-width: 460px;
   backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
-  max-width: 440px;
 }
-.demo__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
-.demo__label { font-size: 11.5px; color: var(--muted); font-weight: 600; }
-.demo__value {
-  font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 700;
-  letter-spacing: -0.8px; margin-top: 3px; font-variant-numeric: tabular-nums;
+.cash__scene { position: relative; height: 104px; perspective: 620px; }
+.cash__bills { position: absolute; inset: 0; transform-style: preserve-3d; }
+/* Купюра: не фотореализм, а узнаваемый силуэт в палитре приложения */
+.cash__bill {
+  position: absolute; left: 6px; bottom: calc(10px + var(--i) * 2.5px);
+  width: 168px; height: 76px; border-radius: 9px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.34) 0 17px, transparent 18px),
+    linear-gradient(118deg, var(--v1) 0%, var(--v2) 58%, var(--v3) 100%);
+  box-shadow: 0 6px 16px -8px rgba(40,20,90,.7), inset 0 0 0 1px rgba(255,255,255,.22);
+  transform-origin: 50% 100%; backface-visibility: hidden;
+  animation: cash-flip 4.8s cubic-bezier(.45,.05,.3,1) infinite;
+  animation-delay: calc(var(--i) * -0.8s);
 }
-.demo__pill {
-  font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 100px;
-  background: var(--violet-soft); color: var(--violet); white-space: nowrap;
-  border: 1px solid color-mix(in srgb, var(--violet) 32%, transparent);
+/* Номинал и «защитные» полосы — двумя псевдоэлементами, без лишней разметки */
+.cash__bill::before {
+  content: '₽'; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-52%);
+  font-family: 'Space Grotesk', sans-serif; font-size: 19px; font-weight: 700;
+  color: rgba(255,255,255,.95);
+}
+.cash__bill::after {
+  content: ''; position: absolute; inset: 9px 12px; border-radius: 5px;
+  border: 1.5px dashed rgba(255,255,255,.34);
+}
+@keyframes cash-flip {
+  0%      { transform: rotateX(0deg) translateY(4px) scale(.98); opacity: 0; }
+  6%      { transform: rotateX(0deg) translateY(0) scale(1); opacity: 1; }
+  52%     { transform: rotateX(0deg) translateY(0) scale(1); opacity: 1; }
+  74%     { transform: rotateX(-104deg) translateY(-14px) scale(1.02); opacity: 1; }
+  88%     { transform: rotateX(-168deg) translateY(-20px) scale(1.02); opacity: 0; }
+  100%    { transform: rotateX(-180deg) translateY(-20px); opacity: 0; }
 }
 
-.demo__grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 14px; }
-.demo__day { height: 26px; border-radius: 7px; background: var(--bg); border: 1px solid var(--line); position: relative; }
-.demo__day--pay i {
-  position: absolute; inset: 3px; border-radius: 5px; display: block;
-  background: linear-gradient(120deg, var(--v1), var(--v2));
-  transform: scale(.4); opacity: 0;
-  animation: demo-chip 7s cubic-bezier(.2,.8,.3,1) infinite;
+.cash__meter { min-width: 0; }
+.cash__label { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.cash__value {
+  font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700;
+  letter-spacing: -1px; margin: 3px 0 10px; font-variant-numeric: tabular-nums;
+  background: linear-gradient(100deg, var(--ink) 18%, var(--v2) 92%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.demo__day--1 i { animation-delay: .4s; }
-.demo__day--2 i { animation-delay: 1.0s; }
-.demo__day--3 i { animation-delay: 1.6s; }
-@keyframes demo-chip {
-  0%   { transform: scale(.4); opacity: 0; }
-  7%   { transform: scale(1.12); opacity: 1; }
-  11%  { transform: scale(1); opacity: 1; }
-  82%  { transform: scale(1); opacity: 1; }
-  90%, 100% { transform: scale(.4); opacity: 0; }
-}
-
-.demo__bar { height: 6px; border-radius: 100px; background: var(--violet-soft); overflow: hidden; }
-.demo__barFill {
+.cash__bar { height: 5px; border-radius: 100px; background: var(--violet-soft); overflow: hidden; }
+.cash__barFill {
   display: block; height: 100%; width: 0; border-radius: 100px;
   background: linear-gradient(90deg, var(--v1), var(--v2), var(--v3));
-  animation: demo-bar 7s cubic-bezier(.2,.8,.3,1) infinite;
+  animation: cash-bar 4.8s cubic-bezier(.45,.05,.3,1) infinite;
 }
-@keyframes demo-bar {
-  0%, 8%  { width: 0; }
-  46%     { width: 72%; }
-  82%     { width: 72%; }
-  92%, 100% { width: 0; }
+@keyframes cash-bar {
+  0%   { width: 0; }
+  76%  { width: 100%; }
+  92%  { width: 100%; }
+  100% { width: 0; }
+}
+.cash__foot {
+  display: flex; align-items: flex-start; gap: 7px; margin-top: 9px; line-height: 1.35;
+  font-size: 11.5px; font-weight: 600; color: var(--muted);
+}
+.cash__tick {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 3px;
+  background: var(--green); box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent);
+  animation: cash-pulse 2.4s ease-out infinite;
+}
+@keyframes cash-pulse {
+  0%      { box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent); }
+  70%,100%{ box-shadow: 0 0 0 7px transparent; }
 }
 
-.authFeatures { list-style: none; margin: 26px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
-.authFeatures li { display: flex; align-items: center; gap: 11px; font-size: 13.5px; font-weight: 600; }
-.authFeatures__ic {
-  width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px; display: grid; place-items: center;
-  background: var(--violet-soft); color: var(--violet);
+/* ---- Гайд: четыре шага со сменой картинок ---- */
+.guide {
+  margin-top: 16px; max-width: 460px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card);
+  padding: 15px 18px 17px; box-shadow: var(--shadow);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
 }
-.authFeatures__ic svg { width: 16px; height: 16px; }
+.guide__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 11px; }
+.guide__kicker {
+  font-size: 10.5px; font-weight: 800; letter-spacing: 1.1px; text-transform: uppercase; color: var(--muted-2);
+}
+.guide__dots { display: flex; gap: 6px; }
+.guide__dot {
+  width: 18px; height: 5px; border-radius: 100px; border: none; padding: 0; cursor: pointer;
+  background: var(--violet-soft); transition: background .25s ease, width .25s ease;
+}
+.guide__dot.is-on { width: 26px; background: linear-gradient(90deg, var(--v1), var(--v2)); }
+
+.guide__stage { position: relative; min-height: 96px; }
+.guide__step {
+  position: absolute; inset: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr);
+  gap: 16px; align-items: center;
+  opacity: 0; visibility: hidden; transform: translateX(14px);
+  transition: opacity .38s ease, transform .38s cubic-bezier(.2,.8,.3,1), visibility .38s;
+}
+.guide__step.is-on { opacity: 1; visibility: visible; transform: none; }
+
+.guide__art {
+  height: 72px; border-radius: 13px; display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--violet-soft), var(--coral-soft));
+  border: 1px solid var(--line);
+}
+.guide__art svg { width: 84px; height: 63px; }
+.gArt-card    { fill: none; stroke: var(--muted-2); stroke-width: 2; opacity: .5; }
+.gArt-stroke  { stroke: var(--muted-2); stroke-width: 1.6; opacity: .45; }
+.gArt-stroke--bold { stroke-width: 2.6; stroke-linecap: round; opacity: .55; }
+.gArt-line    { fill: var(--muted-2); opacity: .5; }
+.gArt-line--dim { opacity: .3; }
+.gArt-cell    { fill: var(--muted-2); opacity: .18; }
+.gArt-fill    { fill: var(--violet); }
+.gArt-plan    { fill: var(--violet); opacity: .85; }
+.gArt-paid    { fill: var(--green); }
+.gArt-late    { fill: var(--red); }
+.gArt-type    { fill: var(--violet); opacity: .8; }
+.gArt-type--dim { fill: var(--muted-2); opacity: .45; }
+.gArt-caret   { fill: var(--violet); }
+.gArt-coin    { fill: var(--v3); opacity: .85; }
+.gArt-panel   { fill: color-mix(in srgb, var(--violet) 16%, transparent); stroke: var(--violet); stroke-width: 1.6; }
+/* Прозрачность — на группе, иначе перекрытия пальцев и ладони темнят стыки */
+.gArt-hand { opacity: .6; }
+.gArt-hand > * { fill: var(--muted-2); }
+
+/* Картинка оживает только у активного шага — иначе анимация идёт впустую */
+.guide__step.is-on .gArt-pop   { animation: gart-pop .5s cubic-bezier(.2,1.5,.4,1) backwards; animation-delay: calc(.25s + var(--d)); }
+/* Поля карточки «печатаются»: ширина набегает слева направо */
+.guide__step.is-on .gArt-type  { animation: gart-type .42s cubic-bezier(.3,.9,.3,1) backwards; animation-delay: calc(.2s + var(--d)); transform-origin: left center; }
+.guide__step.is-on .gArt-caret { animation: gart-caret .9s steps(1) infinite; }
+.guide__step.is-on .gArt-float { animation: gart-float 3.4s ease-in-out infinite; }
+.guide__step.is-on .gArt-rise  { animation: gart-rise 2.6s ease-out infinite; animation-delay: var(--d); }
+@keyframes gart-pop   { from { opacity: 0; transform: scale(.4); transform-origin: 50% 50%; } }
+@keyframes gart-type  { from { transform: scaleX(0); opacity: .3; } }
+@keyframes gart-caret { 50% { opacity: .1; } }
+@keyframes gart-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3.5px); } }
+@keyframes gart-rise  {
+  0%      { transform: translateY(6px); opacity: 0; }
+  25%     { opacity: .85; }
+  70%     { opacity: .85; }
+  100%    { transform: translateY(-16px); opacity: 0; }
+}
+
+.guide__n {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase;
+  color: var(--violet); margin-bottom: 4px;
+}
+.guide__title { font-family: 'Space Grotesk', sans-serif; font-size: 16.5px; font-weight: 700; margin: 0 0 5px; letter-spacing: -.3px; }
+.guide__text { margin: 0; font-size: 12.8px; line-height: 1.5; color: var(--muted); }
 
 .authCard__title {
   font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 18px;
@@ -1235,11 +1327,27 @@ button, input, select, textarea { font-family: inherit; }
   .authLayout { grid-template-columns: 1fr; gap: 30px; max-width: 420px; }
   .authPitch__title { font-size: 27px; letter-spacing: -1px; }
   .authPitch__text { font-size: 13.5px; margin-bottom: 20px; }
-  .demo, .authPitch__text { max-width: none; }
-  /* На телефоне список преимуществ уводим под форму по смыслу — он вторичен */
-  .authFeatures { display: none; }
+  .cash, .guide, .authPitch__text { max-width: none; }
+  .cash { grid-template-columns: 150px minmax(0, 1fr); gap: 14px; padding: 14px 16px; }
+  .cash__scene { height: 84px; }
+  .cash__bill { width: 132px; height: 60px; left: 4px; }
+  .cash__bill::before { font-size: 16px; }
+  .cash__value { font-size: 25px; }
+  .cash__foot { font-size: 11px; }
+  .guide__stage { min-height: 126px; }
+  .guide__step { grid-template-columns: 74px minmax(0, 1fr); gap: 12px; }
+  .guide__art { height: 58px; }
+  .guide__art svg { width: 64px; height: 48px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .demo__day--pay i { animation: none; opacity: 1; transform: none; }
-  .demo__barFill { animation: none; width: 72%; }
+  .cash__bill { animation: none; opacity: 1; transform: none; }
+  .cash__barFill { animation: none; width: 100%; }
+  .cash__tick { animation: none; }
+  .guide__step { transition: none; }
+  .guide__step.is-on .gArt-pop,
+  .guide__step.is-on .gArt-type,
+  .guide__step.is-on .gArt-caret,
+  .guide__step.is-on .gArt-float,
+  .guide__step.is-on .gArt-rise { animation: none; }
+  .guide__step.is-on .gArt-rise { opacity: .85; }
 }

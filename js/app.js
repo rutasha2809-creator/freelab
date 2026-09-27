@@ -2029,20 +2029,54 @@ function setAuthMode(mode) {
 
 // Счётчик в демонстрации на экране входа: цикл совпадает с анимацией плиток
 (function runAuthDemo() {
+  // Счётчик синхронизирован с анимацией купюр: 4.8 с на цикл, к 76% сумма собрана
   const el = document.getElementById('demoValue');
-  if (!el || prefersReducedMotion) { if (el) el.textContent = formatMoney(48500); return; }
-  const TO = 48500, CYCLE = 7000, GROW = 2600, START = 400;
-  function cycle() {
-    const t0 = performance.now();
-    function tick(now) {
-      const t = Math.min(1, (now - t0) / GROW);
-      el.textContent = formatMoney(TO * (1 - Math.pow(1 - t, 3)));
-      if (t < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-    setTimeout(() => { el.textContent = formatMoney(0); }, CYCLE - 500);
+  const foot = document.getElementById('demoFoot');
+  const TOTAL = 148500, CYCLE = 4800, GROW = 3650;
+  if (el && prefersReducedMotion) el.textContent = formatMoney(TOTAL);
+  if (el && !prefersReducedMotion) {
+    const cycle = () => {
+      const t0 = performance.now();
+      const tick = now => {
+        const t = Math.min(1, (now - t0) / GROW);
+        el.textContent = formatMoney(TOTAL * (1 - Math.pow(1 - t, 3)));
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      setTimeout(() => { el.textContent = formatMoney(0); }, CYCLE - 180);
+    };
+    cycle();
+    setInterval(cycle, CYCLE);
   }
-  setTimeout(() => { cycle(); setInterval(cycle, CYCLE); }, START);
+  // На узком экране строка не помещается в одну — оставляем только главное
+  const setFoot = () => { if (foot) foot.textContent = window.innerWidth < 900 ? '3 заказчика' : '3 заказчика · налог 5 940 ₽'; };
+  setFoot();
+  window.addEventListener('resize', setFoot);
+
+  // Гайд: шаги меняются сами, но человек может листать точками
+  const guide = document.getElementById('authGuide');
+  if (!guide) return;
+  const steps = [...guide.querySelectorAll('.guide__step')];
+  const dots = [...guide.querySelectorAll('.guide__dot')];
+  if (!steps.length) return;
+  let idx = 0, timer = null;
+  const STEP_MS = 4200;
+
+  function show(n) {
+    idx = (n + steps.length) % steps.length;
+    steps.forEach((s, i) => s.classList.toggle('is-on', i === idx));
+    dots.forEach((d, i) => d.classList.toggle('is-on', i === idx));
+  }
+  function play() { stop(); if (!prefersReducedMotion) timer = setInterval(() => show(idx + 1), STEP_MS); }
+  function stop() { if (timer) { clearInterval(timer); timer = null; } }
+
+  dots.forEach(d => d.addEventListener('click', () => { show(Number(d.dataset.go)); play(); }));
+  guide.addEventListener('mouseenter', stop);
+  guide.addEventListener('mouseleave', play);
+  // Во вкладке на фоне крутить нечего
+  document.addEventListener('visibilitychange', () => document.hidden ? stop() : play());
+  show(0);
+  play();
 })();
 
 authToggleBtn.addEventListener('click', () => setAuthMode(authMode === 'signin' ? 'signup' : 'signin'));
