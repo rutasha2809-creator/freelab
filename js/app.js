@@ -1125,8 +1125,12 @@ function setReportPreset(preset) {
 // заголовок и так говорит, что показано. Подписываем только самый крупный месяц.
 function monthlyIncomeChartSVG() {
   const now = new Date();
+  // На узком экране двенадцать столбиков сжимаются так, что подписи становятся
+  // нечитаемыми — показываем полгода и уже́ холст, тогда текст остаётся крупным
+  const narrow = window.innerWidth < 640;
+  const span = narrow ? 6 : 12;
   const months = [];
-  for (let i = 11; i >= 0; i--) {
+  for (let i = span - 1; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     months.push({ year: d.getFullYear(), month: d.getMonth(), sum: 0 });
   }
@@ -1138,7 +1142,7 @@ function monthlyIncomeChartSVG() {
   });
   if (!months.some(m => m.sum > 0)) return '';
 
-  const W = 720, H = 210, padL = 52, padR = 10, padT = 14, padB = 26;
+  const W = narrow ? 360 : 720, H = narrow ? 190 : 210, padL = narrow ? 44 : 52, padR = 10, padT = 14, padB = 26;
   const plotW = W - padL - padR, plotH = H - padT - padB;
   const rawMax = Math.max(...months.map(m => m.sum));
   // Округляем верх шкалы до «круглого» числа, чтобы подписи оси читались
@@ -1223,11 +1227,12 @@ function renderReports() {
   `;
 
   const chart = monthlyIncomeChartSVG();
+  const chartSpan = window.innerWidth < 640 ? 6 : 12;
   document.getElementById('reportChart').innerHTML = chart
     ? `<div class="chartCard">
          <div class="chartCard__head">
            <span class="chartCard__title">Доход по месяцам</span>
-           <span class="chartCard__note">за последние 12 месяцев</span>
+           <span class="chartCard__note">за последние ${chartSpan} месяцев</span>
          </div>
          ${chart}
        </div>`
@@ -1267,6 +1272,13 @@ function renderReports() {
     );
   }
 }
+
+// При смене ширины окна график перестраивается под новый размер
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { if (state.payments.length) renderReports(); }, 200);
+});
 
 // ---------- Рендер: всё вместе ----------
 
