@@ -1493,9 +1493,12 @@ clientForm.addEventListener('submit', async e => {
       state.clients.push(savedClient);
     }
     await syncClientSchedule(savedClient);
+    const back = (!id && paymentReturnDraft) ? paymentReturnDraft : null;
+    paymentReturnDraft = null;
     closeModals();
     renderAll();
     showToast(id ? 'Клиент обновлён' : 'Клиент добавлен');
+    if (back) returnToPayment(back, savedClient.id);
   } catch (err) {
     console.error(err);
     showToast('Не удалось сохранить клиента');
@@ -1507,14 +1510,50 @@ clientForm.addEventListener('submit', async e => {
 const paymentModal = document.getElementById('paymentModal');
 const paymentForm = document.getElementById('paymentForm');
 
+// Служебное значение первого пункта списка: не клиент, а переход к созданию нового
+const NEW_CLIENT_OPTION = '__new__';
+
 function fillClientSelect(selectedId) {
   const select = document.getElementById('paymentClient');
   const current = selectedId || select.value;
-  select.innerHTML = state.clients
+  const options = state.clients
     .slice().sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-    .map(c => `<option value="${c.id}">${escapeHTML(c.name)}${c.type === 'recurring' ? ' · постоянный' : ' · разовый'}</option>`)
-    .join('');
-  if (current) select.value = current;
+    .map(c => `<option value="${c.id}">${escapeHTML(c.name)}${c.type === 'recurring' ? ' · постоянный' : ' · разовый'}</option>`);
+  select.innerHTML =
+    `<option class="optAdd" value="${NEW_CLIENT_OPTION}">Новый клиент</option>` + options.join('');
+  if (current && current !== NEW_CLIENT_OPTION) select.value = current;
+  else if (options.length) select.selectedIndex = 1; // не оставляем выбранным служебный пункт
+  select.dataset.last = select.value;
+}
+
+// Черновик записи на время, пока человек заводит клиента, чтобы после
+// сохранения вернуть его в ту же форму с уже подставленным заказчиком
+let paymentReturnDraft = null;
+
+function startNewClientFromPayment() {
+  const select = document.getElementById('paymentClient');
+  paymentReturnDraft = {
+    editId: document.getElementById('paymentId').value || '',
+    task: document.getElementById('paymentTask').value,
+    amount: document.getElementById('paymentAmount').value,
+    planDate: document.getElementById('paymentPlanDate').value,
+    factDate: document.getElementById('paymentFactDate').value
+  };
+  // Возвращаем выбор на прежнего клиента: если человек передумает,
+  // в списке не останется висеть служебный пункт
+  const last = select.dataset.last;
+  if (last && last !== NEW_CLIENT_OPTION) select.value = last;
+  paymentModal.classList.remove('is-open');
+  openClientModal();
+}
+
+function returnToPayment(draft, clientId) {
+  openPaymentModal({ editId: draft.editId || undefined, presetClientId: clientId });
+  if (draft.task) document.getElementById('paymentTask').value = draft.task;
+  if (draft.amount) document.getElementById('paymentAmount').value = draft.amount;
+  if (draft.planDate) document.getElementById('paymentPlanDate').value = draft.planDate;
+  if (draft.factDate) document.getElementById('paymentFactDate').value = draft.factDate;
+  updateTaxPreview();
 }
 
 function updateTaxPreview() {
@@ -1530,13 +1569,18 @@ function updateTaxPreview() {
     el.hidden = true;
   }
 }
-document.getElementById('paymentClient').addEventListener('change', updateTaxPreview);
+document.getElementById('paymentClient').addEventListener('change', e => {
+  if (e.target.value === NEW_CLIENT_OPTION) { startNewClientFromPayment(); return; }
+  e.target.dataset.last = e.target.value;
+  updateTaxPreview();
+});
 document.getElementById('paymentAmount').addEventListener('input', updateTaxPreview);
 
 function openPaymentModal({ editId, presetClientId } = {}) {
   if (!state.clients.length) {
     showToast('Сначала добавьте клиента');
     openClientModal();
+    paymentReturnDraft = { editId: '', task: '', amount: '', planDate: '', factDate: '' };
     return;
   }
   paymentForm.reset();
@@ -1568,7 +1612,7 @@ paymentForm.addEventListener('submit', async e => {
   const amount = Number(document.getElementById('paymentAmount').value) || 0;
   const planDate = document.getElementById('paymentPlanDate').value;
   const factDate = document.getElementById('paymentFactDate').value || null;
-  if (!clientId || !task || !planDate) return;
+  if (!clientId || clientId === NEW_CLIENT_OPTION || !task || !planDate) return;
 
   const draft = { clientId, task, amount, planDate, factDate };
   const row = paymentToRow(draft);
@@ -1596,6 +1640,7 @@ paymentForm.addEventListener('submit', async e => {
 
 function closeModals() {
   document.querySelectorAll('.modal').forEach(m => m.classList.remove('is-open'));
+  paymentReturnDraft = null; // человек передумал — возвращать некуда
 }
 
 document.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', closeModals));
