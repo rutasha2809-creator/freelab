@@ -114,6 +114,16 @@ button, input, select, textarea { font-family: inherit; }
   outline: none; transition: border-color .15s;
 }
 .authCard .field input:focus { border-color: var(--violet); }
+.passwordWrap { position: relative; }
+.passwordWrap input { padding-right: 40px; }
+.passwordToggle {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; border: none; background: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; color: #A79FC0;
+  border-radius: 6px; transition: color .15s;
+}
+.passwordToggle:hover { color: var(--violet); }
+.passwordToggle.is-active { color: var(--violet); }
 .authSubmit { width: 100%; margin-top: 4px; padding: 12px; border-radius: 10px; font-size: 14.5px; }
 .authError {
   background: #FDEAEA; color: var(--red); font-size: 12.5px;
