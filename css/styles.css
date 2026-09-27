@@ -58,6 +58,8 @@ button, input, select, textarea { font-family: inherit; }
 
 .app { display: flex; min-height: 100vh; }
 .app[hidden], .authScreen[hidden] { display: none !important; }
+/* Атрибут hidden должен скрывать элемент, даже если у класса задан свой display */
+[hidden] { display: none !important; }
 
 /* ---------- SIDEBAR ---------- */
 .sidebar {
@@ -550,6 +552,39 @@ button, input, select, textarea { font-family: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .confetti-piece { display: none; }
   .skeleton::after { animation: none; }
+}
+
+/* ---------- ПЕРВЫЙ ЗАПУСК И ПРИМЕР ---------- */
+.firstRun {
+  background: var(--paper); border: 1.5px solid var(--line); border-radius: 22px;
+  padding: 40px 32px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+}
+.firstRun[hidden] { display: none; }
+.firstRun__icon {
+  width: 56px; height: 56px; border-radius: 18px; margin-bottom: 18px;
+  background: linear-gradient(135deg, #8B5CF6, #FF7A50); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.firstRun__title { margin: 0 0 10px; font-size: 22px; font-weight: 700; }
+.firstRun__text {
+  margin: 0 0 24px; font-size: 14.5px; line-height: 1.6; color: var(--muted); max-width: 440px;
+}
+.firstRun__actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+.demoBanner {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  background: var(--violet-soft); border: 1.5px solid transparent; border-radius: 14px;
+  padding: 12px 18px; font-size: 13.5px; font-weight: 600; color: var(--violet);
+}
+.demoBanner[hidden] { display: none; }
+
+@media (max-width: 720px) {
+  .firstRun { padding: 32px 20px; }
+  .firstRun__title { font-size: 19px; }
+  .firstRun__actions { width: 100%; flex-direction: column; }
+  .firstRun__actions .btn { width: 100%; justify-content: center; }
+  .demoBanner { flex-direction: column; align-items: stretch; text-align: center; }
 }
 
 .settingsCard--mobileOnly { display: none; }

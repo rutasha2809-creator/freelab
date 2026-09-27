@@ -29,6 +29,7 @@ function normalizeClient(c) {
     contract: c.contract && typeof c.contract === 'object'
       ? { enabled: !!c.contract.enabled, payerType: c.contract.payerType === 'company' ? 'company' : 'individual' }
       : { enabled: false, payerType: 'individual' },
+    isDemo: !!c.isDemo,
     createdAt: c.createdAt || todayISO(),
   };
 }
@@ -49,6 +50,7 @@ function rowToClient(row) {
     planAmount2: row.plan_amount2,
     planDay2: row.plan_day2,
     contract: { enabled: row.contract_enabled, payerType: row.payer_type },
+    isDemo: !!row.is_demo,
     createdAt: row.created_at,
   });
 }
@@ -67,6 +69,7 @@ function clientToRow(c) {
     plan_day2: c.planDay2 ?? null,
     contract_enabled: !!(c.contract && c.contract.enabled),
     payer_type: (c.contract && c.contract.payerType) || 'individual',
+    is_demo: !!c.isDemo,
   };
 }
 
@@ -663,6 +666,81 @@ function renderPaymentsCalendar() {
   `;
 }
 
+// ---------- Демонстрационный пример для нового пользователя ----------
+
+function hasDemoData() {
+  return state.clients.some(c => c.isDemo);
+}
+
+async function createDemoData() {
+  const today = todayISO();
+  const now = new Date();
+  // «Ожидается» держим внутри текущего месяца, иначе показатели месяца выйдут пустыми
+  const endOfMonth = dateForDayInMonth(now.getFullYear(), now.getMonth(), daysInMonth(now.getFullYear(), now.getMonth()));
+  const startOfMonth = dateForDayInMonth(now.getFullYear(), now.getMonth(), 1);
+  const soon = [addDaysISO(today, 5), endOfMonth].sort()[0];
+  // «Получено» тоже оставляем в этом месяце — иначе плитка «Уже получено» будет пустой
+  const paid = [addDaysISO(today, -6), startOfMonth].sort().reverse()[0];
+  // «Просрочено» не привязываем к месяцу: этот показатель считается по всем датам
+  const late = addDaysISO(today, -3);
+  const dayOf = iso => new Date(iso + 'T00:00:00').getDate();
+
+  const demoClients = [
+    { name: 'Онлайн-школа', type: 'recurring', tasksDesc: 'Веду соцсети', planAmount: 15000,
+      planDay: dayOf(soon), planFrequency: 'monthly', contract: { enabled: true, payerType: 'company' }, isDemo: true },
+    { name: 'Кофейня у дома', type: 'recurring', tasksDesc: 'Тексты для рассылки', planAmount: 6000,
+      planDay: dayOf(paid), planFrequency: 'monthly', contract: { enabled: false, payerType: 'individual' }, isDemo: true },
+    { name: 'Андрей (сайт)', type: 'oneoff', tasksDesc: '', planAmount: null,
+      planDay: null, planFrequency: 'monthly', contract: { enabled: false, payerType: 'individual' }, isDemo: true },
+  ];
+
+  const inserted = [];
+  for (const c of demoClients) {
+    const { data, error } = await sb.from('clients').insert(clientToRow(normalizeClient(c))).select().single();
+    if (error) throw error;
+    inserted.push(rowToClient(data));
+  }
+
+  // Три записи, чтобы сразу были видны все статусы: оплачено, ожидается, просрочено.
+  // У плановых стоит признак автосоздания — тогда генератор графика не продублирует их.
+  const demoPayments = [
+    { client_id: inserted[0].id, task: 'Плановый платёж', amount: 15000, plan_date: soon, fact_date: null, auto_generated: true },
+    { client_id: inserted[1].id, task: 'Плановый платёж', amount: 6000, plan_date: paid, fact_date: paid, auto_generated: true },
+    { client_id: inserted[2].id, task: 'Лендинг под ключ', amount: 20000, plan_date: late, fact_date: null, auto_generated: false },
+  ];
+  const { error: pErr } = await sb.from('payments').insert(demoPayments);
+  if (pErr) throw pErr;
+
+  await fetchState();
+}
+
+async function removeDemoData() {
+  // Платежи удалятся сами — у связи client_id стоит каскадное удаление
+  const { error } = await sb.from('clients').delete().eq('is_demo', true);
+  if (error) throw error;
+  await fetchState();
+}
+
+// ---------- Первый экран: приложение ещё пустое ----------
+
+function renderFirstRun() {
+  const el = document.getElementById('firstRun');
+  if (!el) return false;
+  const isEmpty = state.clients.length === 0;
+  el.hidden = !isEmpty;
+  // Пока данных нет, нули и пустой календарь только мешают
+  ['stats', 'monthProgress', 'taxForecast', 'paymentsCalendar'].forEach(id => {
+    const block = document.getElementById(id);
+    if (block) block.hidden = isEmpty;
+  });
+  return isEmpty;
+}
+
+function renderDemoBanner() {
+  const el = document.getElementById('demoBanner');
+  if (el) el.hidden = !hasDemoData();
+}
+
 function openDayDetail(iso) {
   const dayPayments = state.payments.filter(p => p.planDate === iso);
   if (!dayPayments.length) return;
@@ -1028,6 +1106,8 @@ function renderReports() {
 // ---------- Рендер: всё вместе ----------
 
 function renderAll() {
+  renderFirstRun();
+  renderDemoBanner();
   renderStats();
   renderMonthProgress();
   renderTaxForecast();
@@ -1367,6 +1447,32 @@ document.addEventListener('click', async e => {
     openPaymentModal();
   } else if (action === 'open-day') {
     openDayDetail(btn.dataset.date);
+  } else if (action === 'try-demo') {
+    btn.disabled = true;
+    try {
+      await createDemoData();
+      showToast('Добавлен пример');
+    } catch (err) {
+      console.error(err);
+      showToast('Не удалось добавить пример');
+    } finally {
+      // Перерисовываем в любом случае: даже если часть шагов не прошла,
+      // экран должен показывать то, что реально лежит в базе
+      renderAll();
+      btn.disabled = false;
+    }
+  } else if (action === 'remove-demo') {
+    btn.disabled = true;
+    try {
+      await removeDemoData();
+      showToast('Пример убран');
+    } catch (err) {
+      console.error(err);
+      showToast('Не удалось убрать пример');
+    } finally {
+      renderAll();
+      btn.disabled = false;
+    }
   } else if (action === 'calendar-prev') {
     calendarMonthOffset -= 1;
     renderPaymentsCalendar();
