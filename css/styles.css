@@ -34,9 +34,11 @@
   --blur: blur(24px) saturate(1.5);
 
   /* Главная плитка — насыщенный градиент, а не чёрный прямоугольник */
-  --accent-bg: linear-gradient(140deg, #7C5CFF 0%, #A85BFF 48%, #FF5CA8 100%);
+  /* Градиент притушён намеренно: на прежнем, светлом, белая подпись давала
+     контраст 2.2 при норме 4.5 и просто сливалась с фоном. Здесь — от 5.3 */
+  --accent-bg: linear-gradient(140deg, #6A4AE6 0%, #8B3FD4 48%, #C42A78 100%);
   --accent-fg: #FFFFFF;
-  --accent-label: rgba(255,255,255,.80);
+  --accent-label: rgba(255,255,255,.92);
   --accent-border: transparent;
 
   --r-card: 20px;
@@ -871,8 +873,14 @@ button, input, select, textarea { font-family: inherit; }
   box-shadow: 0 16px 38px -20px color-mix(in srgb, var(--coral) 80%, transparent);
 }
 
-/* Главная плитка: градиент, светящееся число и дышащее облако света */
-.tile--hero { background: var(--accent-bg); }
+/* Акцентные плитки возвращают себе градиент: стеклянный слой выше по файлу
+   перекрывал их фон, и белая подпись оказывалась на белом */
+.tile--dark, .tile--hero {
+  background: var(--accent-bg);
+  color: var(--accent-fg);
+  border-color: var(--accent-border);
+}
+.tile--dark .tile__label, .tile--hero .tile__label { color: var(--accent-label); }
 .tile--hero .tile__value {
   background: linear-gradient(100deg, #fff 10%, #F3E6FF 45%, #C9FFF7 95%);
   -webkit-background-clip: text; background-clip: text; color: transparent;
@@ -958,9 +966,9 @@ button, input, select, textarea { font-family: inherit; }
 #reportTable.clientsTable { grid-template-columns: 1fr; gap: 10px; }
 
 .clientCard {
-  display: flex; flex-direction: column; gap: 14px;
+  display: flex; align-items: center; gap: 14px;
   background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card);
-  padding: 18px; position: relative; overflow: hidden;
+  padding: 14px 16px; position: relative; overflow: hidden; cursor: pointer;
   box-shadow: var(--shadow);
   backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
   transition: transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s ease, border-color .3s ease;
@@ -969,26 +977,11 @@ button, input, select, textarea { font-family: inherit; }
   transform: translateY(-3px); box-shadow: var(--shadow-hi);
   border-color: color-mix(in srgb, var(--coral) 50%, transparent);
 }
-.clientCard__head { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.clientCard__id { min-width: 0; }
 .clientCard__name {
-  font-weight: 700; font-size: 15px; line-height: 1.3;
+  flex-grow: 1; min-width: 0; font-weight: 700; font-size: 14.5px; line-height: 1.35;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.clientCard__sub { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
-.clientCard__badges { display: flex; flex-wrap: wrap; gap: 7px; }
-
-.clientCard__figures {
-  display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap;
-  margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line);
-}
-.clientCard__figLabel { font-size: 11.5px; color: var(--muted); }
-.clientCard__figValue {
-  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; margin-top: 3px;
-}
-.clientCard__spark { margin-left: auto; }
-
-.clientCard__actions { display: flex; gap: 8px; }
+.clientCard__actions { display: flex; gap: 7px; flex-shrink: 0; }
 
 .badge--oneoff { background: var(--coral-soft); color: var(--coral); }
 
@@ -1067,4 +1060,47 @@ button, input, select, textarea { font-family: inherit; }
   .reportRow { grid-template-columns: 1fr; gap: 8px; }
   .reportRow__num { text-align: left; display: flex; justify-content: space-between; font-size: 13.5px; }
   .reportRow__num::before { content: attr(data-label); color: var(--muted); font-weight: 600; font-family: 'Manrope', sans-serif; }
+}
+
+/* ============ НАСТРОЙКИ: компактно, со значками ============ */
+.setWrap { display: flex; flex-direction: column; gap: 14px; max-width: 680px; }
+.setGroup__title { padding: 13px 18px 7px; font-size: 11.5px; }
+
+.setRow {
+  display: flex; align-items: center; gap: 13px;
+  padding: 11px 18px; border-top: 1px solid var(--line);
+}
+.setRow__icon {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: var(--r-chip);
+  display: grid; place-items: center; color: var(--violet);
+  background: var(--violet-soft); border: 1px solid transparent;
+}
+.setRow__icon svg { width: 18px; height: 18px; }
+.setRow__text { display: flex; flex-direction: column; min-width: 0; flex-grow: 1; }
+.setRow__name { font-size: 13.5px; font-weight: 700; }
+.setRow__hint { font-size: 12px; color: var(--muted); margin-top: 1px; line-height: 1.4; }
+.setRow__control { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+.setRow--danger .setRow__icon { color: var(--red); background: var(--red-soft); }
+.setRow--danger .setRow__name { color: var(--red); }
+.setRow .profileForm { gap: 8px; }
+.setRow .profileForm input { flex: 0 1 150px; padding: 7px 11px; font-size: 13px; }
+
+/* Значки оживают при наведении и показывают смысл действия */
+.setRow__icon svg { transition: transform .35s cubic-bezier(.2,.8,.3,1); }
+.setRow:hover .setRow__icon--down svg { transform: translateY(3px); }
+.setRow:hover .setRow__icon--up svg { transform: translateY(-3px); }
+.setRow:hover .setRow__icon--theme svg { transform: rotate(45deg); }
+.setRow:hover .setRow__icon--mail svg { transform: translateY(-2px); }
+.setRow:hover .setRow__icon--user svg { transform: scale(1.1); }
+.setRow:hover .setRow__icon--trash .lid { transform-origin: 12px 6px; transform: rotate(-16deg); }
+.setRow__icon .lid { transition: transform .3s cubic-bezier(.2,.8,.3,1); }
+
+@media (max-width: 620px) {
+  .setRow { flex-wrap: wrap; }
+  .setRow__control { width: 100%; padding-left: 47px; }
+  .setRow .profileForm input { flex: 1 1 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .setRow__icon svg, .setRow__icon .lid { transition: none; }
+  .setRow:hover .setRow__icon svg, .setRow:hover .setRow__icon .lid { transform: none; }
 }

@@ -1031,47 +1031,11 @@ function renderClientsTable() {
     .slice()
     .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
     .map(client => {
-      const payments = state.payments.filter(p => p.clientId === client.id);
-      const total = payments.filter(p => deriveStatus(p) === 'paid').reduce((s, p) => s + (Number(p.amount) || 0), 0);
-      const openCount = payments.filter(p => deriveStatus(p) !== 'paid').length;
-      const planLine = clientPlanLineText(client);
-      const subLine = planLine || client.tasksDesc || '';
-      const sparkline = clientSparklineSVG(client);
       return `
         <article class="clientCard" data-client-id="${client.id}">
-          <div class="clientCard__head">
-            <div class="row__avatar">${initials(client.name)}</div>
-            <div class="clientCard__id">
-              <div class="clientCard__name">${escapeHTML(client.name)}</div>
-              ${subLine ? `<div class="clientCard__sub">${escapeHTML(subLine)}</div>` : ''}
-            </div>
-          </div>
-
-          <div class="clientCard__badges">
-            ${client.type === 'recurring'
-              ? '<span class="badge badge--violet">Постоянный</span>'
-              : '<span class="badge badge--oneoff">Разовый</span>'}
-            ${client.contract && client.contract.enabled
-              ? `<span class="badge badge--contract">Договор · ${client.contract.payerType === 'company' ? '6%' : '4%'}</span>`
-              : '<span class="badge badge--nocontract">Без договора</span>'}
-          </div>
-
-          <div class="clientCard__figures">
-            <div>
-              <div class="clientCard__figLabel">Получено всего</div>
-              <div class="clientCard__figValue">${formatMoney(total)}</div>
-            </div>
-            <div>
-              <div class="clientCard__figLabel">Открытых записей</div>
-              <div class="clientCard__figValue">${openCount}</div>
-            </div>
-            ${sparkline ? `<div class="clientCard__spark" title="Поступления за 6 месяцев">${sparkline}</div>` : ''}
-          </div>
-
+          <div class="row__avatar">${initials(client.name)}</div>
+          <div class="clientCard__name">${escapeHTML(client.name)}</div>
           <div class="clientCard__actions">
-            <button class="iconbtn" title="Добавить задачу" data-action="add-payment-for" data-id="${client.id}">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-            </button>
             <button class="iconbtn" title="Редактировать" data-action="edit-client" data-id="${client.id}">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 20l.8-3.6L16 5.2a1.6 1.6 0 0 1 2.3 0l.5.5a1.6 1.6 0 0 1 0 2.3L7.6 19.2 4 20Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
             </button>
@@ -1743,8 +1707,8 @@ document.getElementById('btnNewClientTop').addEventListener('click', () => openC
 
 document.getElementById('clientsTable').addEventListener('click', e => {
   if (e.target.closest('[data-action]')) return;
-  const row = e.target.closest('.ctRow');
-  if (row) openClientDetail(row.dataset.clientId);
+  const card = e.target.closest('[data-client-id]');
+  if (card) openClientDetail(card.dataset.clientId);
 });
 
 document.getElementById('btnDetailAddPayment').addEventListener('click', () => {
