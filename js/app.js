@@ -22,6 +22,8 @@ function normalizeClient(c) {
     planAmount: c.planAmount != null ? Number(c.planAmount) : null,
     planDay: c.planDay != null ? Number(c.planDay) : null,
     planDate: c.planDate || null,
+    planAmount2: c.planAmount2 != null ? Number(c.planAmount2) : null,
+    planDay2: c.planDay2 != null ? Number(c.planDay2) : null,
     contract: c.contract && typeof c.contract === 'object'
       ? { enabled: !!c.contract.enabled, payerType: c.contract.payerType === 'company' ? 'company' : 'individual' }
       : { enabled: false, payerType: 'individual' },
@@ -40,6 +42,8 @@ function rowToClient(row) {
     planAmount: row.plan_amount,
     planDay: row.plan_day,
     planDate: row.plan_date,
+    planAmount2: row.plan_amount2,
+    planDay2: row.plan_day2,
     contract: { enabled: row.contract_enabled, payerType: row.payer_type },
     createdAt: row.created_at,
   });
@@ -53,6 +57,8 @@ function clientToRow(c) {
     plan_amount: c.planAmount,
     plan_day: c.planDay,
     plan_date: c.planDate,
+    plan_amount2: c.planAmount2 ?? null,
+    plan_day2: c.planDay2 ?? null,
     contract_enabled: !!(c.contract && c.contract.enabled),
     payer_type: (c.contract && c.contract.payerType) || 'individual',
   };
@@ -382,7 +388,12 @@ function sortByRelevance(a, b) {
 function clientPlanLineText(client) {
   if (!client.planAmount) return '';
   if (client.type === 'recurring') {
-    return `${formatMoney(client.planAmount)}${client.planDay ? ` · до ${client.planDay} числа` : ' · ежемесячно'}`;
+    const first = `${formatMoney(client.planAmount)}${client.planDay ? ` · до ${client.planDay} числа` : ' · ежемесячно'}`;
+    if (client.planAmount2) {
+      const second = `${formatMoney(client.planAmount2)}${client.planDay2 ? ` · до ${client.planDay2} числа` : ''}`;
+      return `Аванс: ${first} + Остаток: ${second}`;
+    }
+    return first;
   }
   return `${formatMoney(client.planAmount)}${client.planDate ? ` · до ${formatDateShort(client.planDate)}` : ''}`;
 }
@@ -623,7 +634,21 @@ function setClientTypeUI(type) {
   });
   document.getElementById('planDayWrap').hidden = type !== 'recurring';
   document.getElementById('planDateWrap').hidden = type !== 'oneoff';
+  document.getElementById('splitPayWrap').hidden = type !== 'recurring';
+  if (type !== 'recurring') setSplitPayUI(false);
 }
+
+function setSplitPayUI(enabled) {
+  document.getElementById('clientSplitPay').checked = enabled;
+  document.getElementById('splitPayFields').hidden = !enabled;
+  document.getElementById('planAmountLabel').textContent = enabled ? 'Аванс, ₽' : 'Плановая сумма, ₽';
+  document.getElementById('planDayLabel').textContent = enabled ? 'День аванса' : 'День платежа';
+  if (!enabled) {
+    document.getElementById('clientPlanAmount2').value = '';
+    document.getElementById('clientPlanDay2').value = '';
+  }
+}
+document.getElementById('clientSplitPay').addEventListener('change', e => setSplitPayUI(e.target.checked));
 
 function setClientContractUI(enabled) {
   document.getElementById('clientContract').value = enabled ? '1' : '0';
@@ -661,12 +686,16 @@ function openClientModal(editId) {
     document.getElementById('clientPlanAmount').value = c.planAmount ?? '';
     document.getElementById('clientPlanDay').value = c.planDay ?? '';
     document.getElementById('clientPlanDate').value = c.planDate ?? '';
+    document.getElementById('clientPlanAmount2').value = c.planAmount2 ?? '';
+    document.getElementById('clientPlanDay2').value = c.planDay2 ?? '';
     setClientTypeUI(c.type);
+    setSplitPayUI(c.type === 'recurring' && (c.planAmount2 != null || c.planDay2 != null));
     setClientContractUI(!!(c.contract && c.contract.enabled));
     setPayerTypeUI(c.contract && c.contract.payerType === 'company' ? 'company' : 'individual');
   } else {
     document.getElementById('clientModalTitle').textContent = 'Новый клиент';
     setClientTypeUI('recurring');
+    setSplitPayUI(false);
     setClientContractUI(false);
     setPayerTypeUI('individual');
   }
@@ -685,11 +714,16 @@ clientForm.addEventListener('submit', async e => {
   const planDay = type === 'recurring' && document.getElementById('clientPlanDay').value
     ? Number(document.getElementById('clientPlanDay').value) : null;
   const planDate = type === 'oneoff' ? (document.getElementById('clientPlanDate').value || null) : null;
+  const splitPay = type === 'recurring' && document.getElementById('clientSplitPay').checked;
+  const planAmount2 = splitPay && document.getElementById('clientPlanAmount2').value
+    ? Number(document.getElementById('clientPlanAmount2').value) : null;
+  const planDay2 = splitPay && document.getElementById('clientPlanDay2').value
+    ? Number(document.getElementById('clientPlanDay2').value) : null;
   const contractEnabled = document.getElementById('clientContract').value === '1';
   const payerType = document.getElementById('clientPayerType').value;
   if (!name) return;
 
-  const draft = { name, type, tasksDesc, planAmount, planDay, planDate, contract: { enabled: contractEnabled, payerType } };
+  const draft = { name, type, tasksDesc, planAmount, planDay, planDate, planAmount2, planDay2, contract: { enabled: contractEnabled, payerType } };
   const row = clientToRow(draft);
 
   try {

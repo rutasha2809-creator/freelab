@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Фрилаб — трекер клиентов</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=4">
+<link rel="stylesheet" href="css/styles.css?v=5">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -227,16 +227,32 @@
 
       <div class="field-row">
         <label class="field">
-          <span>Плановая сумма, ₽</span>
+          <span id="planAmountLabel">Плановая сумма, ₽</span>
           <input type="number" id="clientPlanAmount" min="0" step="1" placeholder="0">
         </label>
         <label class="field" id="planDayWrap">
-          <span>День платежа</span>
+          <span id="planDayLabel">День платежа</span>
           <input type="number" id="clientPlanDay" min="1" max="31" placeholder="Напр. 5">
         </label>
         <label class="field" id="planDateWrap" hidden>
           <span>Ожидаемая дата оплаты</span>
           <input type="date" id="clientPlanDate">
+        </label>
+      </div>
+
+      <label class="field field--checkbox" id="splitPayWrap">
+        <input type="checkbox" id="clientSplitPay">
+        <span>Выплата двумя частями в месяц (аванс + зарплата)</span>
+      </label>
+
+      <div class="field-row" id="splitPayFields" hidden>
+        <label class="field">
+          <span>Зарплата/остаток, ₽</span>
+          <input type="number" id="clientPlanAmount2" min="0" step="1" placeholder="0">
+        </label>
+        <label class="field">
+          <span>День выплаты остатка</span>
+          <input type="number" id="clientPlanDay2" min="1" max="31" placeholder="Напр. 20">
         </label>
       </div>
 
@@ -334,6 +350,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=4"></script>
+<script src="js/app.js?v=5"></script>
 </body>
 </html>
