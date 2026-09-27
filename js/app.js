@@ -461,7 +461,7 @@ function renderStats() {
   const el = document.getElementById('stats');
   const spark = overallSparklineSVG();
   el.innerHTML = `
-    <div class="tile tile--hero">
+    <div class="tile tile--hero tile--dark">
       <div class="hero-blob"></div>
       <div class="tile__icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3 5 1.1 5 3-2.2 3.5-5 3.5-5-1.6-5-3.5" stroke="#1B1626" stroke-width="2.1" stroke-linecap="round"/></svg>
@@ -960,17 +960,17 @@ function renderReports() {
   const netAll = grossAll - taxAll;
 
   document.getElementById('reportStats').innerHTML = `
-    <div class="stat stat--dark">
-      <div class="stat__label">Доход за период</div>
-      <div class="stat__value">${formatMoney(grossAll)}</div>
+    <div class="tile tile--dark">
+      <div class="tile__label">Доход за период</div>
+      <div class="tile__value">${formatMoney(grossAll)}</div>
     </div>
-    <div class="stat">
-      <div class="stat__label">Налог НПД</div>
-      <div class="stat__value">${formatMoney(taxAll)}</div>
+    <div class="tile">
+      <div class="tile__label" style="color:var(--muted)">Налог НПД</div>
+      <div class="tile__value">${formatMoney(taxAll)}</div>
     </div>
-    <div class="stat">
-      <div class="stat__label">На руки</div>
-      <div class="stat__value">${formatMoney(netAll)}</div>
+    <div class="tile">
+      <div class="tile__label" style="color:var(--muted)">На руки</div>
+      <div class="tile__value">${formatMoney(netAll)}</div>
     </div>
   `;
 
