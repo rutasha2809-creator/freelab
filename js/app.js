@@ -126,6 +126,92 @@ function formatMoney(n) {
   return moneyFmt.format(Math.round(Number(n) || 0)) + ' ₽';
 }
 
+// ---------- Небольшие UI-эффекты (анимация цифр, конфетти) ----------
+
+const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Плавно "наматывает" число от 0 до целевого значения при появлении на экране
+function animateNumber(el, to, duration = 700) {
+  if (prefersReducedMotion) { el.textContent = formatMoney(to); return; }
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = formatMoney(to * eased);
+    if (t < 1) requestAnimationFrame(tick);
+    else el.textContent = formatMoney(to);
+  }
+  requestAnimationFrame(tick);
+}
+
+function animateValuesIn(container) {
+  container.querySelectorAll('[data-animate-value]').forEach(el => {
+    animateNumber(el, Number(el.dataset.animateValue) || 0);
+  });
+}
+
+// Небольшой всплеск конфетти в точке клика — обратная связь при отметке платежа оплаченным
+function celebrateAt(x, y) {
+  if (prefersReducedMotion) return;
+  const colors = ['#6C3CE9', '#FF7A50', '#1FAB6B', '#F0A020'];
+  const count = 10;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('span');
+    el.className = 'confetti-piece';
+    el.style.background = colors[i % colors.length];
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+    const dist = 36 + Math.random() * 28;
+    el.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    el.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+// ---------- Тёмная тема ----------
+
+function applyTheme(theme) {
+  if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+  else document.documentElement.removeAttribute('data-theme');
+  const sun = document.getElementById('themeIconSun');
+  const moon = document.getElementById('themeIconMoon');
+  if (sun) sun.hidden = theme === 'dark';
+  if (moon) moon.hidden = theme !== 'dark';
+}
+
+function initTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem('freelab-theme'); } catch (e) {}
+  applyTheme(saved === 'dark' ? 'dark' : 'light');
+}
+
+document.getElementById('btnTheme').addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try { localStorage.setItem('freelab-theme', next); } catch (e) {}
+});
+
+initTheme();
+
+// ---------- Skeleton-заглушки на время первой загрузки данных ----------
+
+function renderSkeleton() {
+  const statsEl = document.getElementById('stats');
+  if (statsEl) {
+    statsEl.innerHTML = Array.from({ length: 4 }).map(() => `
+      <div class="stat skeleton"><div class="stat__value">0 ₽</div></div>
+    `).join('');
+  }
+  const listRecurring = document.getElementById('listRecurring');
+  if (listRecurring) {
+    listRecurring.innerHTML = Array.from({ length: 3 }).map(() => `
+      <div class="row skeleton" style="height:82px"></div>
+    `).join('');
+  }
+}
+
 function formatDateShort(iso) {
   if (!iso) return '—';
   const d = new Date(iso + 'T00:00:00');
@@ -351,30 +437,31 @@ function renderStats() {
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3 5 1.1 5 3-2.2 3.5-5 3.5-5-1.6-5-3.5" stroke="#1B1626" stroke-width="2.1" stroke-linecap="round"/></svg>
       </div>
       <div class="stat__label">Ожидается в этом месяце</div>
-      <div class="stat__value">${formatMoney(s.expected)}</div>
+      <div class="stat__value" data-animate-value="${s.expected}">0 ₽</div>
     </div>
     <div class="stat">
       <div class="stat__icon" style="background:#E4F8EE;">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#1FAB6B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div class="stat__label">Уже получено</div>
-      <div class="stat__value">${formatMoney(s.received)}</div>
+      <div class="stat__value" data-animate-value="${s.received}">0 ₽</div>
     </div>
     <div class="stat">
       <div class="stat__icon" style="background:#FFF3DC;">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#F0A020" stroke-width="2.1"/><path d="M12 7.5V12l3 2" stroke="#F0A020" stroke-width="2.1" stroke-linecap="round"/></svg>
       </div>
       <div class="stat__label">В ожидании оплаты</div>
-      <div class="stat__value">${formatMoney(s.pending)}</div>
+      <div class="stat__value" data-animate-value="${s.pending}">0 ₽</div>
     </div>
     <div class="stat stat--danger">
       <div class="stat__icon" style="background:#FCE4E0;">
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 8v5" stroke="#E8493C" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.1" fill="#E8493C"/><circle cx="12" cy="12" r="9" stroke="#E8493C" stroke-width="2.1"/></svg>
       </div>
       <div class="stat__label">Просрочено</div>
-      <div class="stat__value">${formatMoney(s.overdue)}</div>
+      <div class="stat__value" data-animate-value="${s.overdue}">0 ₽</div>
     </div>
   `;
+  animateValuesIn(el);
 }
 
 function renderTaxForecast() {
@@ -391,18 +478,19 @@ function renderTaxForecast() {
     <div class="forecastBand">
       <div class="forecastBand__item">
         <div class="forecastBand__label">Доход по договору за ${MONTHS[new Date().getMonth()]}</div>
-        <div class="forecastBand__value">${formatMoney(f.gross)}</div>
+        <div class="forecastBand__value" data-animate-value="${f.gross}">0 ₽</div>
       </div>
       <div class="forecastBand__item">
         <div class="forecastBand__label">Налог НПД</div>
-        <div class="forecastBand__value" style="color:#FF9E7A;">${formatMoney(f.tax)}</div>
+        <div class="forecastBand__value" style="color:#FF9E7A;" data-animate-value="${f.tax}">0 ₽</div>
       </div>
       <div class="forecastBand__item">
         <div class="forecastBand__label">На руки</div>
-        <div class="forecastBand__value" style="color:#7CE0AE;">${formatMoney(f.net)}</div>
+        <div class="forecastBand__value" style="color:#7CE0AE;" data-animate-value="${f.net}">0 ₽</div>
       </div>
     </div>
   `;
+  animateValuesIn(el);
 }
 
 // ---------- Рендер: списки платежей ----------
@@ -1078,10 +1166,12 @@ document.addEventListener('click', async e => {
 
   if (action === 'mark-paid') {
     try {
+      const rect = btn.getBoundingClientRect();
       const factDate = todayISO();
       const { error } = await sb.from('payments').update({ fact_date: factDate }).eq('id', id);
       if (error) throw error;
       state.payments.find(x => x.id === id).factDate = factDate;
+      celebrateAt(rect.left + rect.width / 2, rect.top + rect.height / 2);
       renderAll();
       showToast('Отмечено как оплачено');
     } catch (err) {
@@ -1400,6 +1490,7 @@ function showApp(session) {
   // данные загружаем один раз на пользователя, а не при каждом таком событии
   if (loadedForUserId !== session.user.id) {
     loadedForUserId = session.user.id;
+    renderSkeleton();
     fetchState();
   }
 }

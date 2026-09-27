@@ -17,6 +17,25 @@
   --line: #EEE6F5;
   --muted: #8B8299;
   --muted-2: #B0A7C4;
+  /* Поверхности, которые всегда тёмные независимо от темы (сайдбар, экран входа,
+     тёмные акцентные элементы) — не путать с --ink, который меняется в тёмной теме */
+  --surface-dark: #1B1626;
+}
+
+/* ---------- ТЁМНАЯ ТЕМА ---------- */
+:root[data-theme="dark"] {
+  --ink: #F1ECFB;
+  --muted: #A79FC5;
+  --muted-2: #746B93;
+  --bg: #120F1C;
+  --paper: #1E1830;
+  --line: #332C49;
+  --violet-soft: #2A2150;
+  --coral-soft: #3A2415;
+  --green-soft: #12301F;
+  --amber-soft: #332405;
+  --red-soft: #3B1A16;
+  --red-border: #5B2B23;
 }
 
 * { box-sizing: border-box; }
@@ -30,6 +49,7 @@ body {
   background: var(--bg);
   font-family: 'Manrope', sans-serif;
   color: var(--ink);
+  transition: background-color .2s ease, color .2s ease;
 }
 
 h1, h2, h3, .display { font-family: 'Space Grotesk', sans-serif; }
@@ -43,7 +63,7 @@ button, input, select, textarea { font-family: inherit; }
 .sidebar {
   width: 248px;
   flex-shrink: 0;
-  background: var(--ink);
+  background: var(--surface-dark);
   color: #EFE9FB;
   display: flex;
   flex-direction: column;
@@ -103,7 +123,7 @@ button, input, select, textarea { font-family: inherit; }
 /* ---------- AUTH SCREEN ---------- */
 .authScreen {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: var(--ink); padding: 24px;
+  background: var(--surface-dark); padding: 24px;
 }
 .authCard {
   width: 100%; max-width: 360px; background: #fff; border-radius: 20px;
@@ -161,7 +181,7 @@ button, input, select, textarea { font-family: inherit; }
   display: inline-flex; align-items: center; gap: 8px;
   white-space: nowrap;
 }
-.btn--dark { background: var(--ink); color: #fff; }
+.btn--dark { background: var(--surface-dark); color: #fff; }
 .btn--dark:hover { background: #2c2440; }
 .btn--outline { background: #fff; color: var(--ink); border: 1.5px solid var(--line); }
 .btn--outline:hover { border-color: var(--violet); color: var(--violet); }
@@ -179,7 +199,7 @@ button, input, select, textarea { font-family: inherit; }
   background: var(--paper); border: 1.5px solid var(--line); border-radius: 20px;
   padding: 22px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden;
 }
-.stat--dark { background: var(--ink); border-color: var(--ink); }
+.stat--dark { background: var(--surface-dark); border-color: var(--surface-dark); }
 .stat--danger { border-color: var(--red-border); }
 .stat__blob { position: absolute; right: -18px; top: -18px; width: 90px; height: 90px; border-radius: 50%; background: var(--ink-soft); }
 .stat__icon { width: 38px; height: 38px; border-radius: 11px; display: flex; align-items: center; justify-content: center; z-index: 1; }
@@ -276,7 +296,7 @@ button, input, select, textarea { font-family: inherit; }
 
 /* ---------- TAX FORECAST BAND ---------- */
 .forecastBand {
-  background: linear-gradient(135deg, #241d33, var(--ink)); border-radius: 20px;
+  background: linear-gradient(135deg, #241d33, var(--surface-dark)); border-radius: 20px;
   padding: 22px 26px; display: flex; gap: 44px; flex-wrap: wrap; align-items: center; color: #fff;
 }
 .forecastBand__item { display: flex; flex-direction: column; gap: 4px; }
@@ -356,10 +376,55 @@ button, input, select, textarea { font-family: inherit; }
 /* ---------- TOAST ---------- */
 .toast {
   position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(20px);
-  background: var(--ink); color: #fff; padding: 13px 22px; border-radius: 100px;
+  background: var(--surface-dark); color: #fff; padding: 13px 22px; border-radius: 100px;
   font-size: 14px; font-weight: 600; opacity: 0; pointer-events: none; transition: all .2s ease; z-index: 200;
 }
 .toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* Точечные тёмные варианты для элементов с "зашитым" светлым фоном,
+   которые не берут цвет напрямую из --paper/--line */
+[data-theme="dark"] .btn--outline { background: var(--paper); }
+[data-theme="dark"] .iconbtn { background: var(--paper); }
+[data-theme="dark"] .field input,
+[data-theme="dark"] .field textarea,
+[data-theme="dark"] .field select { background: #171223; }
+[data-theme="dark"] .field input:focus,
+[data-theme="dark"] .field textarea:focus,
+[data-theme="dark"] .field select:focus { background: var(--paper); }
+[data-theme="dark"] .segmented__opt { background: #171223; }
+[data-theme="dark"] .empty { background: var(--paper); border-color: #3A3152; color: var(--muted); }
+[data-theme="dark"] .badge--nocontract { background: #2A2438; color: var(--muted); }
+[data-theme="dark"] .modal__panel { background: var(--paper); }
+[data-theme="dark"] .forecastBand--empty { background: var(--paper); border-color: #3A3152; color: var(--muted); }
+
+/* ---------- SKELETON-ЗАГРУЗКА ---------- */
+.skeleton { position: relative; overflow: hidden; background: var(--line) !important; border-color: transparent !important; }
+.skeleton * { visibility: hidden; }
+.skeleton::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+  animation: skeleton-shimmer 1.3s infinite;
+}
+@keyframes skeleton-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+.skeleton__line { height: 13px; border-radius: 6px; background: rgba(255,255,255,.4); }
+
+/* ---------- КОНФЕТТИ ПРИ ОТМЕТКЕ ОПЛАТЫ ---------- */
+.confetti-piece {
+  position: fixed; width: 7px; height: 7px; border-radius: 2px;
+  pointer-events: none; z-index: 999; will-change: transform, opacity;
+  animation: confetti-burst .7s cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes confetti-burst {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(.4) rotate(200deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece { display: none; }
+  .skeleton::after { animation: none; }
+}
 
 @media (max-width: 720px) {
   .app { flex-direction: column; }
