@@ -44,6 +44,11 @@
   --r-card: 20px;
   --r-control: 13px;
   --r-chip: 9px;
+
+  /* Выпадающие списки рисует сама система: фон здесь обязан быть
+     непрозрачным, полупрозрачный --paper для них не годится */
+  --menu-bg: #FFFFFF;
+  --menu-fg: #1A1430;
 }
 
 /* ---------- ТЁМНАЯ ТЕМА ---------- */
@@ -73,6 +78,10 @@
   --shadow-hi: 0 28px 64px -24px rgba(0,0,0,1), inset 0 1px 0 rgba(255,255,255,.10);
   --accent-glow: rgba(255,255,255,.13);
   --glass: rgba(14,12,26,.62);
+
+  --menu-bg: #1B1630;
+  --menu-fg: #F4F2FF;
+  color-scheme: dark;
 
   --accent-bg: linear-gradient(145deg, rgba(124,92,255,.32), rgba(255,92,168,.17) 55%, rgba(61,224,210,.13));
   --accent-fg: #FFFFFF;
@@ -624,6 +633,9 @@ button, input, select, textarea { font-family: inherit; }
   border: 1.5px solid var(--line); background: #FBF9FC; color: var(--ink);
 }
 .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--violet); background: #fff; }
+/* Список вариантов рисует система — задаём непрозрачный фон и контрастный текст */
+.field select option { background: var(--menu-bg); color: var(--menu-fg); font-weight: 500; }
+.field select option.optAdd { color: var(--violet); font-weight: 700; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
 .field-row .field { margin-top: 0; }
 
