@@ -2144,7 +2144,67 @@ document.getElementById('btnLogoutMobile')?.addEventListener('click', doLogout);
 
 let loadedForUserId = null;
 
+// ---------- Заставка: сцены перед экраном входа ----------
+
+const introCtl = (function () {
+  const intro = document.getElementById('intro');
+  if (!intro) return { play() {}, stop() {} };
+  const scenes = [...intro.querySelectorAll('.iScene')];
+  const segs = [...intro.querySelectorAll('.introBar span')];
+  const DUR = [2600, 2500, 2700, 3100];
+  const KEY = 'freelab-intro-seen';
+  const REPEAT_AFTER = 12 * 3600 * 1000; // повторно показываем не чаще раза в 12 часов
+  let idx = -1, timer = null, running = false;
+
+  function stop(remember) {
+    if (!running) return;
+    running = false;
+    clearTimeout(timer); timer = null;
+    document.removeEventListener('keydown', onKey);
+    if (remember) { try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {} }
+    intro.classList.add('is-done');
+    setTimeout(() => { intro.hidden = true; intro.classList.remove('is-done'); }, 700);
+  }
+  function show(n) {
+    if (n >= scenes.length) { stop(true); return; }
+    idx = n;
+    scenes.forEach((s, k) => s.classList.toggle('is-on', k === n));
+    segs.forEach((s, k) => {
+      s.classList.toggle('is-past', k < n);
+      s.classList.remove('is-on');
+    });
+    // перезапуск перехода полосы: браузеру нужен кадр между сбросом и включением
+    requestAnimationFrame(() => {
+      if (!segs[n]) return;
+      segs[n].style.setProperty('--t', DUR[n] + 'ms');
+      segs[n].classList.add('is-on');
+    });
+    timer = setTimeout(() => show(n + 1), DUR[n]);
+  }
+  function onKey(e) { if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') stop(true); }
+
+  intro.addEventListener('click', e => {
+    if (e.target.closest('.introSkip')) { stop(true); return; }
+    clearTimeout(timer);
+    show(idx + 1);
+  });
+
+  function play() {
+    if (running) return;
+    let last = 0;
+    try { last = Number(localStorage.getItem(KEY)) || 0; } catch (e) {}
+    if (prefersReducedMotion || Date.now() - last < REPEAT_AFTER) return;
+    running = true;
+    intro.hidden = false;
+    intro.classList.remove('is-done');
+    document.addEventListener('keydown', onKey);
+    requestAnimationFrame(() => show(0));
+  }
+  return { play, stop: () => stop(false) };
+})();
+
 function showApp(session) {
+  introCtl.stop();
   authScreenEl.hidden = true;
   appEl.hidden = false;
   authForm.hidden = false;
@@ -2169,6 +2229,7 @@ function showAuth() {
   recoveryForm.hidden = true;
   authForm.reset();
   setAuthMode('signin');
+  introCtl.play();
 }
 
 function showRecovery() {
