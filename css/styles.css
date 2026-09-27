@@ -408,8 +408,14 @@ button, input, select, textarea { font-family: inherit; }
 .agendaDay--today { border-color: var(--violet); }
 .agendaDay__body { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
 .agendaItem { display: flex; align-items: center; gap: 8px; }
+.agendaItem__text { display: flex; flex-direction: column; gap: 1px; flex-grow: 1; min-width: 0; }
 .agendaItem__name {
-  font-size: 13.5px; font-weight: 600; flex-grow: 1; min-width: 0;
+  font-size: 13.5px; font-weight: 600; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Назначение платежа: в один день у клиента может быть и остаток, и предоплата */
+.agendaItem__task {
+  font-size: 11px; color: var(--muted); min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .agendaItem__amount { font-family: 'Space Grotesk', sans-serif; font-size: 13.5px; font-weight: 700; flex-shrink: 0; }

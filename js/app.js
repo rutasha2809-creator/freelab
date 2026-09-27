@@ -658,7 +658,10 @@ function renderPaymentsCalendar() {
         const name = client ? client.name : p.task;
         return `<div class="agendaItem">
           <span class="agendaDot agendaDot--${deriveStatus(p)}"></span>
-          <span class="agendaItem__name">${escapeHTML(name)}</span>
+          <span class="agendaItem__text">
+            <span class="agendaItem__name">${escapeHTML(name)}</span>
+            <span class="agendaItem__task">${escapeHTML(p.task)}</span>
+          </span>
           <span class="agendaItem__amount">${formatMoney(p.amount)}</span>
         </div>`;
       }).join('');
