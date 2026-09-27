@@ -369,6 +369,9 @@ async function clearFutureAutoPayments(clientId) {
 const WEEKDAYS = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
 const WEEKDAY_SHORT = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+// «за сентябрь» (а не «за сентября») и «в сентябре» — разные падежи, поэтому два отдельных списка
+const MONTHS_ACC = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+const MONTHS_PREP = ['январе','феврале','марте','апреле','мае','июне','июле','августе','сентябре','октябре','ноябре','декабре'];
 
 function todayLabel() {
   const d = new Date();
@@ -401,29 +404,41 @@ function deriveStatus(payment) {
   return 'pending';
 }
 
-function isInCurrentMonth(iso) {
+// Месяц, который сейчас показывает дашборд: 0 — текущий, +1 — следующий, −1 — предыдущий.
+// Его листают стрелками в календаре, и за ним следуют плитки, полоса и налоговый прогноз.
+let dashboardMonthOffset = 0;
+
+function dashboardMonth() {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + dashboardMonthOffset, 1);
+  return { year: d.getFullYear(), month: d.getMonth(), offset: dashboardMonthOffset };
+}
+
+function isInMonth(iso, year, month) {
   if (!iso) return false;
   const d = new Date(iso + 'T00:00:00');
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  return d.getFullYear() === year && d.getMonth() === month;
 }
 
 function computeStats() {
+  const { year, month } = dashboardMonth();
   let expected = 0, received = 0, pending = 0, overdue = 0;
   for (const p of state.payments) {
     const status = deriveStatus(p);
-    if (isInCurrentMonth(p.planDate)) expected += Number(p.amount) || 0;
-    if (status === 'paid' && isInCurrentMonth(p.factDate)) received += Number(p.amount) || 0;
-    if (status === 'pending' && isInCurrentMonth(p.planDate)) pending += Number(p.amount) || 0;
+    if (isInMonth(p.planDate, year, month)) expected += Number(p.amount) || 0;
+    if (status === 'paid' && isInMonth(p.factDate, year, month)) received += Number(p.amount) || 0;
+    if (status === 'pending' && isInMonth(p.planDate, year, month)) pending += Number(p.amount) || 0;
+    // Просрочку не привязываем к месяцу: долг остаётся долгом, в какой месяц ни листай
     if (status === 'overdue') overdue += Number(p.amount) || 0;
   }
   return { expected, received, pending, overdue };
 }
 
 function computeTaxForecast() {
+  const { year, month } = dashboardMonth();
   let gross = 0, tax = 0;
   for (const p of state.payments) {
-    if (!isInCurrentMonth(p.planDate)) continue;
+    if (!isInMonth(p.planDate, year, month)) continue;
     const c = getClient(p.clientId);
     const rate = clientTaxRatePercent(c);
     if (!rate) continue;
@@ -464,8 +479,16 @@ function overallSparklineSVG() {
 
 function renderStats() {
   const s = computeStats();
+  const { month, offset } = dashboardMonth();
+  const isNow = offset === 0;
   const el = document.getElementById('stats');
   const spark = overallSparklineSVG();
+  // В текущем месяце подписи привычные; в остальных — месяц называем прямо,
+  // чтобы нельзя было спутать, к какому периоду относятся цифры
+  const labelExpected = isNow ? 'Ожидается в этом месяце' : `Ожидается в ${MONTHS_PREP[month]}`;
+  const labelReceived = isNow ? 'Уже получено' : 'Оплачено';
+  const labelPending = isNow ? 'В ожидании оплаты' : 'Ожидается';
+  const labelOverdue = isNow ? 'Просрочено' : 'Просрочено всего';
   el.innerHTML = `
     <div class="tile tile--hero tile--dark">
       <div class="hero-blob"></div>
@@ -473,7 +496,7 @@ function renderStats() {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3 5 1.1 5 3-2.2 3.5-5 3.5-5-1.6-5-3.5" stroke="#1B1626" stroke-width="2.1" stroke-linecap="round"/></svg>
       </div>
       <div>
-        <div class="tile__label">Ожидается в этом месяце</div>
+        <div class="tile__label">${labelExpected}</div>
         <div class="tile__value" data-animate-value="${s.expected}">0 ₽</div>
       </div>
       ${spark ? `<svg class="hero-spark" viewBox="0 0 260 46" preserveAspectRatio="none">${spark}</svg>` : ''}
@@ -483,7 +506,7 @@ function renderStats() {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#1FAB6B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div>
-        <div class="tile__label" style="color:var(--muted)">Уже получено</div>
+        <div class="tile__label" style="color:var(--muted)">${labelReceived}</div>
         <div class="tile__value" data-animate-value="${s.received}">0 ₽</div>
       </div>
     </div>
@@ -492,7 +515,7 @@ function renderStats() {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#B87700" stroke-width="2.1"/><path d="M12 7.5V12l3 2" stroke="#B87700" stroke-width="2.1" stroke-linecap="round"/></svg>
       </div>
       <div>
-        <div class="tile__label" style="color:var(--muted)">В ожидании оплаты</div>
+        <div class="tile__label" style="color:var(--muted)">${labelPending}</div>
         <div class="tile__value" data-animate-value="${s.pending}">0 ₽</div>
       </div>
     </div>
@@ -501,7 +524,7 @@ function renderStats() {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8v5" stroke="#E8493C" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.1" fill="#E8493C"/><circle cx="12" cy="12" r="9" stroke="#E8493C" stroke-width="2.1"/></svg>
       </div>
       <div class="tile__text">
-        <div class="tile__label" style="color:var(--muted)">Просрочено</div>
+        <div class="tile__label" style="color:var(--muted)">${labelOverdue}</div>
         <div class="tile__value" data-animate-value="${s.overdue}">0 ₽</div>
       </div>
     </div>
@@ -522,7 +545,7 @@ function renderTaxForecast() {
   el.innerHTML = `
     <div class="forecastBand">
       <div class="forecastBand__item">
-        <div class="forecastBand__label">Доход по договору за ${MONTHS[new Date().getMonth()]}</div>
+        <div class="forecastBand__label">Доход по договору за ${MONTHS_ACC[dashboardMonth().month]}</div>
         <div class="forecastBand__value" data-animate-value="${f.gross}">0 ₽</div>
       </div>
       <div class="forecastBand__item">
@@ -543,6 +566,9 @@ function renderTaxForecast() {
 function renderMonthProgress() {
   const el = document.getElementById('monthProgress');
   if (!el) return;
+  const { month, offset } = dashboardMonth();
+  // В будущем месяце собирать ещё нечего — пустая полоса только выглядит поломкой
+  if (offset > 0) { el.innerHTML = ''; return; }
   const s = computeStats();
   const total = s.expected || 0;
   if (!total) { el.innerHTML = ''; return; }
@@ -550,7 +576,7 @@ function renderMonthProgress() {
   el.innerHTML = `
     <div class="progressCard">
       <div class="progressCard__row">
-        <span class="progressCard__label">Собрано за ${MONTHS[new Date().getMonth()]}</span>
+        <span class="progressCard__label">Собрано за ${MONTHS_ACC[month]}</span>
         <span class="progressCard__pct">${pct}%</span>
       </div>
       <div class="progressCard__track"><div class="progressCard__fill" style="width:0%" data-target-width="${pct}"></div></div>
@@ -563,13 +589,6 @@ function renderMonthProgress() {
 
 // ---------- Рендер: календарь поступлений ----------
 
-let calendarMonthOffset = 0; // 0 = текущий месяц, +1 = следующий, -1 = предыдущий
-
-function calendarTargetDate() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() + calendarMonthOffset, 1);
-}
-
 function dayStatus(dayPayments, today) {
   const allPaid = dayPayments.every(p => p.factDate);
   const anyOverdue = dayPayments.some(p => !p.factDate && p.planDate < today);
@@ -579,8 +598,7 @@ function dayStatus(dayPayments, today) {
 function renderPaymentsCalendar() {
   const el = document.getElementById('paymentsCalendar');
   if (!el) return;
-  const target = calendarTargetDate();
-  const year = target.getFullYear(), month = target.getMonth();
+  const { year, month } = dashboardMonth();
   const totalDays = daysInMonth(year, month);
   const firstIsoWeekday = new Date(year, month, 1).getDay() || 7; // 1=пн...7=вс
 
@@ -641,7 +659,7 @@ function renderPaymentsCalendar() {
     }
   }
 
-  const isCurrentMonth = calendarMonthOffset === 0;
+  const isCurrentMonth = dashboardMonthOffset === 0;
   el.innerHTML = `
     <div class="calendarHead">
       <span class="calendarTitle">${MONTHS_NOM[month]}${year !== new Date().getFullYear() ? ' ' + year : ''}</span>
@@ -1105,13 +1123,19 @@ function renderReports() {
 
 // ---------- Рендер: всё вместе ----------
 
-function renderAll() {
-  renderFirstRun();
-  renderDemoBanner();
+// Всё, что зависит от выбранного месяца — плитки, полоса, налог и календарь — рисуется вместе,
+// чтобы на экране никогда не соседствовали данные за разные месяцы
+function renderDashboardMonth() {
   renderStats();
   renderMonthProgress();
   renderTaxForecast();
   renderPaymentsCalendar();
+}
+
+function renderAll() {
+  renderFirstRun();
+  renderDemoBanner();
+  renderDashboardMonth();
   renderClientsTable();
   fillClientSelect();
   renderReports();
@@ -1474,14 +1498,14 @@ document.addEventListener('click', async e => {
       btn.disabled = false;
     }
   } else if (action === 'calendar-prev') {
-    calendarMonthOffset -= 1;
-    renderPaymentsCalendar();
+    dashboardMonthOffset -= 1;
+    renderDashboardMonth();
   } else if (action === 'calendar-next') {
-    calendarMonthOffset += 1;
-    renderPaymentsCalendar();
+    dashboardMonthOffset += 1;
+    renderDashboardMonth();
   } else if (action === 'calendar-today') {
-    calendarMonthOffset = 0;
-    renderPaymentsCalendar();
+    dashboardMonthOffset = 0;
+    renderDashboardMonth();
   }
 });
 
@@ -1817,6 +1841,7 @@ function showApp(session) {
   // данные загружаем один раз на пользователя, а не при каждом таком событии
   if (loadedForUserId !== session.user.id) {
     loadedForUserId = session.user.id;
+    dashboardMonthOffset = 0; // новый вход всегда начинается с текущего месяца
     renderSkeleton();
     fetchState();
   }
