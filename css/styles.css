@@ -951,3 +951,120 @@ button, input, select, textarea { font-family: inherit; }
 .forecastBand__label { color: var(--muted); }
 [data-theme="dark"] .forecastBand { background: var(--accent-bg); color: #fff; border-color: var(--accent-border); }
 [data-theme="dark"] .forecastBand__label { color: var(--accent-label); }
+
+/* ============ КЛИЕНТЫ: сетка карточек вместо сплошного списка ============ */
+.clientsTable { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+/* На странице отчётов тот же контейнер используется как обычный список */
+#reportTable.clientsTable { grid-template-columns: 1fr; gap: 10px; }
+
+.clientCard {
+  display: flex; flex-direction: column; gap: 14px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card);
+  padding: 18px; position: relative; overflow: hidden;
+  box-shadow: var(--shadow);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  transition: transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s ease, border-color .3s ease;
+}
+.clientCard:hover {
+  transform: translateY(-3px); box-shadow: var(--shadow-hi);
+  border-color: color-mix(in srgb, var(--coral) 50%, transparent);
+}
+.clientCard__head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.clientCard__id { min-width: 0; }
+.clientCard__name {
+  font-weight: 700; font-size: 15px; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.clientCard__sub { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+.clientCard__badges { display: flex; flex-wrap: wrap; gap: 7px; }
+
+.clientCard__figures {
+  display: flex; align-items: flex-end; gap: 22px; flex-wrap: wrap;
+  margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line);
+}
+.clientCard__figLabel { font-size: 11.5px; color: var(--muted); }
+.clientCard__figValue {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; margin-top: 3px;
+}
+.clientCard__spark { margin-left: auto; }
+
+.clientCard__actions { display: flex; gap: 8px; }
+
+.badge--oneoff { background: var(--coral-soft); color: var(--coral); }
+
+@media (max-width: 560px) {
+  .clientsTable { grid-template-columns: 1fr; }
+}
+
+/* ============ НАСТРОЙКИ: компактные строки вместо огромных плашек ============ */
+.setGroup {
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card);
+  box-shadow: var(--shadow); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  overflow: hidden;
+}
+.setGroup__title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--muted-2);
+  padding: 15px 20px 9px;
+}
+.setRow {
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  padding: 14px 20px; border-top: 1px solid var(--line);
+}
+.setRow__text { min-width: 0; }
+.setRow__name { font-size: 14px; font-weight: 700; }
+.setRow__hint { font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+.setRow__control { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+.setRow--danger .setRow__name { color: var(--red); }
+.setRow .profileForm input { flex: 0 1 190px; padding: 8px 12px; font-size: 13.5px; }
+
+@media (max-width: 620px) {
+  .setRow { flex-direction: column; align-items: stretch; gap: 10px; }
+  .setRow__control { justify-content: flex-start; flex-wrap: wrap; }
+  .setRow .profileForm input { flex: 1 1 auto; }
+}
+
+/* ============ ГРАФИК ДОХОДА ============ */
+.chartCard {
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card);
+  box-shadow: var(--shadow); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  padding: 18px 20px 12px;
+}
+.chartCard__head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.chartCard__title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; }
+.chartCard__note { font-size: 12.5px; color: var(--muted); }
+.chart { display: block; width: 100%; height: auto; }
+/* Подписи осей — текстовыми токенами, а не цветом данных */
+.chartTick { font-family: 'Manrope', sans-serif; font-size: 10.5px; fill: var(--muted-2); font-variant-numeric: tabular-nums; }
+.chartValue { font-family: 'Space Grotesk', sans-serif; font-size: 11.5px; font-weight: 700; fill: var(--ink); }
+.chart rect[rx] { transition: opacity .15s ease; }
+.chart:hover rect[rx] { opacity: .55; }
+.chart rect[rx]:hover { opacity: 1; }
+
+/* ============ ТАБЛИЦА ОТЧЁТА ============ */
+.reportTableHead, .reportRow {
+  display: grid; grid-template-columns: minmax(0,2fr) repeat(3, minmax(0,1fr)); gap: 16px; align-items: center;
+}
+.reportTableHead {
+  padding: 0 20px 8px; font-size: 11.5px; font-weight: 700; color: var(--muted-2);
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.reportTableHead span:not(:first-child) { text-align: right; }
+.reportRow {
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-control);
+  padding: 14px 20px; box-shadow: var(--shadow);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+}
+.reportRow__name { font-weight: 700; font-size: 14px; }
+.reportRow__sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.reportRow__num {
+  text-align: right; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 720px) {
+  .reportTableHead { display: none; }
+  .reportRow { grid-template-columns: 1fr; gap: 8px; }
+  .reportRow__num { text-align: left; display: flex; justify-content: space-between; font-size: 13.5px; }
+  .reportRow__num::before { content: attr(data-label); color: var(--muted); font-weight: 600; font-family: 'Manrope', sans-serif; }
+}

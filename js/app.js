@@ -1034,39 +1034,41 @@ function renderClientsTable() {
       const payments = state.payments.filter(p => p.clientId === client.id);
       const total = payments.filter(p => deriveStatus(p) === 'paid').reduce((s, p) => s + (Number(p.amount) || 0), 0);
       const openCount = payments.filter(p => deriveStatus(p) !== 'paid').length;
-      const color = avatarColor(client.id);
       const planLine = clientPlanLineText(client);
       const subLine = planLine || client.tasksDesc || '';
       const sparkline = clientSparklineSVG(client);
       return `
-        <div class="ctRow" data-client-id="${client.id}">
-          <div class="ctRow__left">
-            <div class="row__avatar" style="background:${color.bg}; color:${color.fg};">${initials(client.name)}</div>
-            <div>
-              <div class="row__title">${escapeHTML(client.name)}</div>
-              ${subLine ? `<div class="row__sub">${escapeHTML(subLine)}</div>` : ''}
+        <article class="clientCard" data-client-id="${client.id}">
+          <div class="clientCard__head">
+            <div class="row__avatar">${initials(client.name)}</div>
+            <div class="clientCard__id">
+              <div class="clientCard__name">${escapeHTML(client.name)}</div>
+              ${subLine ? `<div class="clientCard__sub">${escapeHTML(subLine)}</div>` : ''}
             </div>
-            ${client.type === 'recurring' ? '<span class="badge badge--violet">Постоянный</span>' : '<span class="badge badge--violet" style="background:#FFE8DE;color:#FF7A50;">Разовый</span>'}
+          </div>
+
+          <div class="clientCard__badges">
+            ${client.type === 'recurring'
+              ? '<span class="badge badge--violet">Постоянный</span>'
+              : '<span class="badge badge--oneoff">Разовый</span>'}
             ${client.contract && client.contract.enabled
               ? `<span class="badge badge--contract">Договор · ${client.contract.payerType === 'company' ? '6%' : '4%'}</span>`
               : '<span class="badge badge--nocontract">Без договора</span>'}
           </div>
-          <div class="ctRow__stats">
+
+          <div class="clientCard__figures">
             <div>
-              <div class="ctRow__stat-label">Получено всего</div>
-              <div class="ctRow__stat-value">${formatMoney(total)}</div>
+              <div class="clientCard__figLabel">Получено всего</div>
+              <div class="clientCard__figValue">${formatMoney(total)}</div>
             </div>
             <div>
-              <div class="ctRow__stat-label">Открытых записей</div>
-              <div class="ctRow__stat-value">${openCount}</div>
+              <div class="clientCard__figLabel">Открытых записей</div>
+              <div class="clientCard__figValue">${openCount}</div>
             </div>
-            ${sparkline ? `
-            <div class="ctRow__sparkline">
-              <span class="ctRow__sparkline-label">6 мес.</span>
-              ${sparkline}
-            </div>` : ''}
+            ${sparkline ? `<div class="clientCard__spark" title="Поступления за 6 месяцев">${sparkline}</div>` : ''}
           </div>
-          <div class="row__actions">
+
+          <div class="clientCard__actions">
             <button class="iconbtn" title="Добавить задачу" data-action="add-payment-for" data-id="${client.id}">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
             </button>
@@ -1077,7 +1079,7 @@ function renderClientsTable() {
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m-9 0 1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
-        </div>
+        </article>
       `;
     }).join('');
   el.innerHTML = rows;
@@ -1155,6 +1157,67 @@ function setReportPreset(preset) {
   renderReports();
 }
 
+// Столбики дохода по месяцам за год. Одна серия — легенда не нужна,
+// заголовок и так говорит, что показано. Подписываем только самый крупный месяц.
+function monthlyIncomeChartSVG() {
+  const now = new Date();
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ year: d.getFullYear(), month: d.getMonth(), sum: 0 });
+  }
+  state.payments.forEach(p => {
+    if (!p.factDate) return;
+    const d = new Date(p.factDate + 'T00:00:00');
+    const slot = months.find(m => m.year === d.getFullYear() && m.month === d.getMonth());
+    if (slot) slot.sum += Number(p.amount) || 0;
+  });
+  if (!months.some(m => m.sum > 0)) return '';
+
+  const W = 720, H = 210, padL = 52, padR = 10, padT = 14, padB = 26;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const rawMax = Math.max(...months.map(m => m.sum));
+  // Округляем верх шкалы до «круглого» числа, чтобы подписи оси читались
+  const step = Math.pow(10, Math.floor(Math.log10(rawMax))) / 2;
+  const max = Math.ceil(rawMax / step) * step || 1;
+
+  const band = plotW / months.length;
+  const barW = Math.min(24, band - 10);          // столбик не заполняет всю полосу
+  const maxIdx = months.reduce((b, m, i) => (m.sum > months[b].sum ? i : b), 0);
+
+  const ticks = [0, max / 2, max].map(v => {
+    const y = padT + plotH - (v / max) * plotH;
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}"
+                  stroke="var(--line)" stroke-width="1"/>
+            <text x="${padL - 8}" y="${(y + 3.5).toFixed(1)}" text-anchor="end"
+                  class="chartTick">${new Intl.NumberFormat('ru-RU').format(Math.round(v))}</text>`;
+  }).join('');
+
+  const bars = months.map((m, i) => {
+    const h = m.sum > 0 ? Math.max(3, (m.sum / max) * plotH) : 0;
+    const x = padL + i * band + (band - barW) / 2;
+    const y = padT + plotH - h;
+    const label = `${MONTHS_NOM[m.month]} ${m.year} — ${formatMoney(m.sum)}`;
+    const bar = h > 0
+      ? `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"
+               rx="4" fill="var(--violet)"><title>${escapeHTML(label)}</title></rect>
+         <rect x="${x.toFixed(1)}" y="${(padT + plotH - 4).toFixed(1)}" width="${barW.toFixed(1)}" height="4"
+               fill="var(--violet)" pointer-events="none"/>`
+      : `<rect x="${x.toFixed(1)}" y="${(padT + plotH - 2).toFixed(1)}" width="${barW.toFixed(1)}" height="2"
+               rx="1" fill="var(--line)"><title>${escapeHTML(label)}</title></rect>`;
+    const tip = (i === maxIdx && m.sum > 0)
+      ? `<text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle"
+               class="chartValue">${formatMoney(m.sum)}</text>`
+      : '';
+    const name = `<text x="${(x + barW / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle"
+                        class="chartTick">${MONTHS_NOM[m.month].slice(0, 3).toLowerCase()}</text>`;
+    return bar + tip + name;
+  }).join('');
+
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+               aria-label="Доход по месяцам за последние 12 месяцев">${ticks}${bars}</svg>`;
+}
+
 function renderReports() {
   const fromEl = document.getElementById('reportFrom');
   const toEl = document.getElementById('reportTo');
@@ -1178,9 +1241,11 @@ function renderReports() {
   }
   const netAll = grossAll - taxAll;
 
+  const everReceived = state.payments.some(p => p.factDate);
+
   document.getElementById('reportStats').innerHTML = `
     <div class="tile tile--dark">
-      <div class="tile__label">Доход за период</div>
+      <div class="tile__label">Получено за период</div>
       <div class="tile__value">${formatMoney(grossAll)}</div>
     </div>
     <div class="tile">
@@ -1188,30 +1253,55 @@ function renderReports() {
       <div class="tile__value">${formatMoney(taxAll)}</div>
     </div>
     <div class="tile">
-      <div class="tile__label" style="color:var(--muted)">На руки</div>
+      <div class="tile__label" style="color:var(--muted)">Осталось на руки</div>
       <div class="tile__value">${formatMoney(netAll)}</div>
     </div>
   `;
 
+  const chart = monthlyIncomeChartSVG();
+  document.getElementById('reportChart').innerHTML = chart
+    ? `<div class="chartCard">
+         <div class="chartCard__head">
+           <span class="chartCard__title">Доход по месяцам</span>
+           <span class="chartCard__note">за последние 12 месяцев</span>
+         </div>
+         ${chart}
+       </div>`
+    : '';
+
   const rows = Array.from(byClient.values()).sort((a, b) => b.gross - a.gross);
   const tableEl = document.getElementById('reportTable');
-  tableEl.innerHTML = rows.length
-    ? rows.map(r => `
-      <div class="ctRow">
-        <div class="ctRow__left">
-          <div>
-            <div class="row__title">${escapeHTML(r.name)}</div>
-            <div class="row__sub">${r.type === 'recurring' ? 'Постоянный' : 'Разовый'}</div>
-          </div>
-        </div>
-        <div class="ctRow__stats">
-          <div><div class="ctRow__stat-label">Доход</div><div class="ctRow__stat-value">${formatMoney(r.gross)}</div></div>
-          <div><div class="ctRow__stat-label">Налог</div><div class="ctRow__stat-value">${formatMoney(r.tax)}</div></div>
-          <div><div class="ctRow__stat-label">На руки</div><div class="ctRow__stat-value">${formatMoney(r.gross - r.tax)}</div></div>
-        </div>
+  if (rows.length) {
+    tableEl.innerHTML = `
+      <div class="reportTableHead">
+        <span>Заказчик</span><span>Получено</span><span>Налог</span><span>На руки</span>
       </div>
-    `).join('')
-    : '<div class="empty"><div class="empty__title">Нет данных за этот период</div><div class="empty__sub">Попробуйте выбрать другой период или отметьте платежи как оплаченные</div></div>';
+      ${rows.map(r => `
+        <div class="reportRow">
+          <div>
+            <div class="reportRow__name">${escapeHTML(r.name)}</div>
+            <div class="reportRow__sub">${r.type === 'recurring' ? 'Постоянный' : 'Разовый'}</div>
+          </div>
+          <div class="reportRow__num" data-label="Получено">${formatMoney(r.gross)}</div>
+          <div class="reportRow__num" data-label="Налог">${formatMoney(r.tax)}</div>
+          <div class="reportRow__num" data-label="На руки">${formatMoney(r.gross - r.tax)}</div>
+        </div>
+      `).join('')}
+    `;
+  } else if (!everReceived) {
+    // Частая причина пустого отчёта: платежи есть, но ни один не отмечен полученным
+    tableEl.innerHTML = emptyStateHTML(
+      'Отчёт пока пустой',
+      'Сюда попадают только те платежи, которые вы отметили полученными. Отметьте оплату галочкой на дашборде — и суммы появятся здесь.',
+      '', ''
+    );
+  } else {
+    tableEl.innerHTML = emptyStateHTML(
+      'За этот период поступлений не было',
+      'Выберите другой период кнопками выше.',
+      '', ''
+    );
+  }
 }
 
 // ---------- Рендер: всё вместе ----------
