@@ -384,12 +384,38 @@ button, input, select, textarea { font-family: inherit; }
 .chip--pending { background: var(--violet-soft); color: var(--violet); }
 .chip--overdue { background: var(--red-soft); color: var(--red); }
 .chip--more { background: transparent; color: var(--muted-2); font-weight: 700; padding-left: 5px; }
+/* Лента поступлений — версия календаря для телефона */
+.calendarAgenda { display: none; flex-direction: column; gap: 10px; }
+.agendaDay {
+  display: flex; gap: 14px; align-items: flex-start;
+  border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 14px;
+  background: var(--bg); cursor: pointer;
+}
+.agendaDay__date {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-width: 42px; flex-shrink: 0;
+}
+.agendaDay__num { font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; line-height: 1.1; }
+.agendaDay__wd { font-size: 11px; font-weight: 700; color: var(--muted-2); text-transform: lowercase; }
+.agendaDay--today .agendaDay__num { color: var(--violet); }
+.agendaDay--today { border-color: var(--violet); }
+.agendaDay__body { display: flex; flex-direction: column; gap: 7px; flex-grow: 1; min-width: 0; }
+.agendaItem { display: flex; align-items: center; gap: 8px; }
+.agendaItem__name {
+  font-size: 13.5px; font-weight: 600; flex-grow: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.agendaItem__amount { font-family: 'Space Grotesk', sans-serif; font-size: 13.5px; font-weight: 700; flex-shrink: 0; }
+.agendaDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.agendaDot--paid { background: var(--green); }
+.agendaDot--pending { background: var(--violet); }
+.agendaDot--overdue { background: var(--red); }
+.agendaEmpty { text-align: center; color: var(--muted); font-size: 13.5px; padding: 26px 10px; }
+
 @media (max-width: 640px) {
-  .calendarDay { min-height: 64px; font-size: 10.5px; border-radius: 9px; }
-  .chip { display: none; }
-  .calendarDay--has-events::after {
-    content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--violet); margin-top: 2px;
-  }
+  .calendarWeekdays, .calendarGrid { display: none; }
+  .calendarAgenda { display: flex; }
+  .calendarCard { padding: 16px 14px 18px; }
 }
 
 /* ---------- TAX FORECAST BAND ---------- */
@@ -526,12 +552,55 @@ button, input, select, textarea { font-family: inherit; }
   .skeleton::after { animation: none; }
 }
 
+.settingsCard--mobileOnly { display: none; }
+
 @media (max-width: 720px) {
   .app { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; align-items: center; padding: 14px 18px; }
-  .nav { flex-direction: row; }
-  .sidebar__footer, .sidebar__spacer { display: none; }
-  .navlink span { display: none; }
-  .main { padding: 24px 18px 60px; }
+
+  /* Сайдбар превращается в нижнюю панель — до неё легко дотянуться большим пальцем */
+  .sidebar {
+    position: fixed; bottom: 0; left: 0; right: 0; top: auto;
+    width: 100%; height: auto; z-index: 60;
+    flex-direction: row; align-items: stretch; gap: 0;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -6px 20px rgba(27, 22, 38, .18);
+  }
+  .brand, .sidebar__spacer, .sidebar__footer { display: none; }
+  .nav { flex-direction: row; width: 100%; gap: 0; }
+  .navlink {
+    flex: 1; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 8px 2px; border-radius: 12px; text-align: center;
+  }
+  .navlink span { display: block; font-size: 10.5px; font-weight: 700; }
+
+  /* Место под нижнюю панель, чтобы она не перекрывала последний блок */
+  .main { padding: 22px 16px calc(96px + env(safe-area-inset-bottom)); }
+  .view { gap: 20px; }
+  .pageheader h1 { font-size: 24px; }
+
+  .settingsCard--mobileOnly { display: block; }
+
   .field-row { grid-template-columns: 1fr; }
+
+  /* Строки платежей: в две полосы вместо сжатия в одну */
+  .row { padding: 14px 16px; gap: 12px; }
+  .row__left, .row__right { width: 100%; }
+  .row__right { justify-content: space-between; gap: 12px; }
+  .row__avatar { width: 40px; height: 40px; border-radius: 12px; }
+  .row__amount { min-width: 0; }
+  .row__dates { text-align: left; }
+  .ctRow { padding: 14px 16px; }
+  .ctRow__left, .ctRow__stats { width: 100%; }
+  .ctRow__stats { justify-content: space-between; gap: 14px; }
+
+  /* Крупнее кнопки — чтобы попадать пальцем */
+  .iconbtn { width: 38px; height: 38px; }
+  .row__actions { gap: 8px; }
+
+  .modal { padding: 16px 12px 24px; }
+  .modal__panel { padding: 20px 18px 22px; border-radius: 18px; }
+
+  /* Уведомление поднимаем над нижней панелью */
+  .toast { bottom: calc(86px + env(safe-area-inset-bottom)); max-width: calc(100vw - 32px); text-align: center; }
 }

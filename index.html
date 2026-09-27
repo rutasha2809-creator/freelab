@@ -12,7 +12,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=13">
+<link rel="stylesheet" href="css/styles.css?v=14">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -185,6 +185,18 @@
           <div class="pageheader__sub">Резервная копия данных</div>
         </div>
       </header>
+
+      <div class="card settingsCard settingsCard--mobileOnly">
+        <h3>Оформление</h3>
+        <p>Светлая или тёмная тема.</p>
+        <button class="btn btn--outline" id="btnThemeMobile">Переключить тему</button>
+      </div>
+
+      <div class="card settingsCard settingsCard--mobileOnly">
+        <h3>Аккаунт</h3>
+        <p id="settingsEmail"></p>
+        <button class="btn btn--outline" id="btnLogoutMobile">Выйти</button>
+      </div>
 
       <div class="card settingsCard">
         <h3>Экспорт данных</h3>
@@ -385,6 +397,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=14"></script>
+<script src="js/app.js?v=15"></script>
 </body>
 </html>

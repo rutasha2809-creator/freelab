@@ -187,11 +187,14 @@ function initTheme() {
   applyTheme(saved === 'dark' ? 'dark' : 'light');
 }
 
-document.getElementById('btnTheme').addEventListener('click', () => {
+function toggleTheme() {
   const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
   applyTheme(next);
   try { localStorage.setItem('freelab-theme', next); } catch (e) {}
-});
+}
+
+document.getElementById('btnTheme').addEventListener('click', toggleTheme);
+document.getElementById('btnThemeMobile')?.addEventListener('click', toggleTheme);
 
 initTheme();
 
@@ -588,6 +591,7 @@ function renderPaymentsCalendar() {
 
   const today = todayISO();
   const cells = [];
+  const agendaDays = [];
   for (let i = 1; i < firstIsoWeekday; i++) cells.push('<div class="calendarDay calendarDay--empty"></div>');
   for (let day = 1; day <= totalDays; day++) {
     const iso = dateForDayInMonth(year, month, day);
@@ -611,6 +615,27 @@ function renderPaymentsCalendar() {
       <div class="calendarDay__num">${day}</div>
       ${chips}
     </div>`);
+
+    // Лента для узкого экрана: только дни, в которые что-то ожидается
+    if (dayPayments.length) {
+      const weekday = WEEKDAY_SHORT[(new Date(year, month, day).getDay() + 6) % 7];
+      const items = dayPayments.map(p => {
+        const client = getClient(p.clientId);
+        const name = client ? client.name : p.task;
+        return `<div class="agendaItem">
+          <span class="agendaDot agendaDot--${deriveStatus(p)}"></span>
+          <span class="agendaItem__name">${escapeHTML(name)}</span>
+          <span class="agendaItem__amount">${formatMoney(p.amount)}</span>
+        </div>`;
+      }).join('');
+      agendaDays.push(`<div class="agendaDay ${iso === today ? 'agendaDay--today' : ''}" data-action="open-day" data-date="${iso}">
+        <div class="agendaDay__date">
+          <span class="agendaDay__num">${day}</span>
+          <span class="agendaDay__wd">${weekday}</span>
+        </div>
+        <div class="agendaDay__body">${items}</div>
+      </div>`);
+    }
   }
 
   const isCurrentMonth = calendarMonthOffset === 0;
@@ -630,6 +655,11 @@ function renderPaymentsCalendar() {
     </div>
     <div class="calendarWeekdays">${WEEKDAY_SHORT.map(w => `<span>${w}</span>`).join('')}</div>
     <div class="calendarGrid">${cells.join('')}</div>
+    <div class="calendarAgenda">${
+      agendaDays.length
+        ? agendaDays.join('')
+        : '<div class="agendaEmpty">В этом месяце поступлений нет</div>'
+    }</div>
   `;
 }
 
@@ -1615,9 +1645,12 @@ recoveryForm.addEventListener('submit', async e => {
   }
 });
 
-btnLogout.addEventListener('click', async () => {
+async function doLogout() {
   await sb.auth.signOut();
-});
+}
+
+btnLogout.addEventListener('click', doLogout);
+document.getElementById('btnLogoutMobile')?.addEventListener('click', doLogout);
 
 let loadedForUserId = null;
 
@@ -1627,6 +1660,8 @@ function showApp(session) {
   authForm.hidden = false;
   recoveryForm.hidden = true;
   document.getElementById('sidebarEmail').textContent = session.user.email;
+  const settingsEmail = document.getElementById('settingsEmail');
+  if (settingsEmail) settingsEmail.textContent = session.user.email;
   initGreeting();
   // Supabase может прислать несколько событий авторизации подряд (вход, обновление токена);
   // данные загружаем один раз на пользователя, а не при каждом таком событии
