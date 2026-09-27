@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Фрилаб — трекер клиентов</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=6">
+<link rel="stylesheet" href="css/styles.css?v=7">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -225,6 +225,15 @@
         <input type="hidden" id="clientType" value="recurring">
       </label>
 
+      <label class="field" id="frequencyWrap">
+        <span>Периодичность</span>
+        <div class="segmented">
+          <button type="button" class="segmented__opt is-active" data-freq="monthly">Ежемесячно</button>
+          <button type="button" class="segmented__opt" data-freq="weekly">Еженедельно</button>
+        </div>
+        <input type="hidden" id="clientFrequency" value="monthly">
+      </label>
+
       <div class="field-row">
         <label class="field">
           <span id="planAmountLabel">Плановая сумма, ₽</span>
@@ -233,6 +242,15 @@
         <label class="field" id="planDayWrap">
           <span id="planDayLabel">День платежа</span>
           <input type="number" id="clientPlanDay" min="1" max="31" placeholder="Напр. 5">
+          <select id="clientPlanWeekday" hidden>
+            <option value="1">Понедельник</option>
+            <option value="2">Вторник</option>
+            <option value="3">Среда</option>
+            <option value="4">Четверг</option>
+            <option value="5">Пятница</option>
+            <option value="6">Суббота</option>
+            <option value="7">Воскресенье</option>
+          </select>
         </label>
         <label class="field" id="planDateWrap" hidden>
           <span>Ожидаемая дата оплаты</span>
@@ -350,6 +368,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=6"></script>
+<script src="js/app.js?v=7"></script>
 </body>
 </html>
