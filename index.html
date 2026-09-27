@@ -10,11 +10,12 @@
   // Применяем сохранённую тему до отрисовки страницы, чтобы не было "мигания" светлой темой
   try {
     var savedTheme = localStorage.getItem('freelab-theme');
-    if (savedTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    // По умолчанию тёмная: светлая включается, только если её выбрали сами
+    if (savedTheme !== 'light') document.documentElement.setAttribute('data-theme', 'dark');
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=30">
+<link rel="stylesheet" href="css/styles.css?v=31">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -271,6 +272,14 @@
     </section>
 
   </main>
+
+  <!-- Быстрая запись платежа — доступна с любой страницы -->
+  <button type="button" class="fab" id="btnQuickPayment" title="Новая запись" aria-label="Новая запись">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+    </svg>
+  </button>
+
 </div>
 
 <!-- CLIENT MODAL -->
@@ -476,6 +485,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=30"></script>
+<script src="js/app.js?v=31"></script>
 </body>
 </html>

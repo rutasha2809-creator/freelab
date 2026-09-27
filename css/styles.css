@@ -1104,3 +1104,35 @@ button, input, select, textarea { font-family: inherit; }
   .setRow__icon svg, .setRow__icon .lid { transition: none; }
   .setRow:hover .setRow__icon svg, .setRow:hover .setRow__icon .lid { transform: none; }
 }
+
+/* ============ БЫСТРАЯ ЗАПИСЬ: плавающая кнопка ============ */
+.fab {
+  position: fixed; right: 28px; bottom: 28px; z-index: 40;
+  width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
+  display: grid; place-items: center; color: #fff;
+  background: linear-gradient(135deg, var(--v1), var(--v2));
+  box-shadow: 0 14px 34px -12px rgba(124,92,255,.95), 0 2px 6px rgba(0,0,0,.2);
+  transition: transform .25s cubic-bezier(.2,.8,.3,1), box-shadow .25s ease, background .25s ease;
+}
+.fab:hover {
+  transform: translateY(-3px) scale(1.04);
+  background: linear-gradient(135deg, var(--v2), var(--v3));
+  box-shadow: 0 20px 44px -12px rgba(192,97,255,1), 0 2px 8px rgba(0,0,0,.25);
+}
+.fab:active { transform: translateY(0) scale(.97); }
+.fab svg { transition: transform .3s cubic-bezier(.2,.8,.3,1); }
+.fab:hover svg { transform: rotate(90deg); }
+.fab:focus-visible { outline: 2.5px solid var(--violet); outline-offset: 3px; }
+
+@media (max-width: 720px) {
+  /* Поднимаем над нижней панелью навигации */
+  .fab {
+    right: 18px; bottom: calc(92px + env(safe-area-inset-bottom));
+    width: 52px; height: 52px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fab, .fab svg { transition: none; }
+  .fab:hover { transform: none; }
+  .fab:hover svg { transform: none; }
+}

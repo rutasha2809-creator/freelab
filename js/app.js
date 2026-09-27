@@ -218,7 +218,8 @@ function applyTheme(theme) {
 function initTheme() {
   let saved = null;
   try { saved = localStorage.getItem('freelab-theme'); } catch (e) {}
-  applyTheme(saved === 'dark' ? 'dark' : 'light');
+  // Тёмная — по умолчанию; светлая только по явному выбору
+  applyTheme(saved === 'light' ? 'light' : 'dark');
 }
 
 function toggleTheme() {
@@ -1713,6 +1714,7 @@ async function deleteClientWithConfirm(id) {
 }
 
 document.getElementById('btnNewPaymentTop')?.addEventListener('click', () => openPaymentModal());
+document.getElementById('btnQuickPayment')?.addEventListener('click', () => openPaymentModal());
 document.getElementById('btnNewClientTop').addEventListener('click', () => openClientModal());
 
 // ---------- Карточка клиента: открытие по клику на строку ----------
