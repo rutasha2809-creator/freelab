@@ -134,13 +134,16 @@ function formatMoney(n) {
 const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Плавно "наматывает" число от 0 до целевого значения при появлении на экране
-function animateNumber(el, to, duration = 700) {
-  if (prefersReducedMotion) { el.textContent = formatMoney(to); return; }
+// Последние показанные суммы — чтобы при перерисовке считать не «с нуля», а с прежнего значения
+let lastAnimatedValues = {};
+
+function animateNumber(el, from, to, duration = 700) {
+  if (prefersReducedMotion || from === to) { el.textContent = formatMoney(to); return; }
   const start = performance.now();
   function tick(now) {
     const t = Math.min(1, (now - start) / duration);
     const eased = 1 - Math.pow(1 - t, 3);
-    el.textContent = formatMoney(to * eased);
+    el.textContent = formatMoney(from + (to - from) * eased);
     if (t < 1) requestAnimationFrame(tick);
     else el.textContent = formatMoney(to);
   }
@@ -149,7 +152,13 @@ function animateNumber(el, to, duration = 700) {
 
 function animateValuesIn(container) {
   container.querySelectorAll('[data-animate-value]').forEach(el => {
-    animateNumber(el, Number(el.dataset.animateValue) || 0);
+    const to = Number(el.dataset.animateValue) || 0;
+    const key = el.dataset.animateKey;
+    // Если сумма не изменилась (например, «Просрочено» при листании месяцев),
+    // она просто остаётся на месте — прокрутка цифр означала бы, что данные другие
+    const from = key && key in lastAnimatedValues ? lastAnimatedValues[key] : 0;
+    if (key) lastAnimatedValues[key] = to;
+    animateNumber(el, from, to);
   });
 }
 
@@ -497,7 +506,7 @@ function renderStats() {
       </div>
       <div>
         <div class="tile__label">${labelExpected}</div>
-        <div class="tile__value" data-animate-value="${s.expected}">0 ₽</div>
+        <div class="tile__value" data-animate-key="expected" data-animate-value="${s.expected}">0 ₽</div>
       </div>
       ${spark ? `<svg class="hero-spark" viewBox="0 0 260 46" preserveAspectRatio="none">${spark}</svg>` : ''}
     </div>
@@ -507,7 +516,7 @@ function renderStats() {
       </div>
       <div>
         <div class="tile__label" style="color:var(--muted)">${labelReceived}</div>
-        <div class="tile__value" data-animate-value="${s.received}">0 ₽</div>
+        <div class="tile__value" data-animate-key="received" data-animate-value="${s.received}">0 ₽</div>
       </div>
     </div>
     <div class="tile tile--small is-pending">
@@ -516,7 +525,7 @@ function renderStats() {
       </div>
       <div>
         <div class="tile__label" style="color:var(--muted)">${labelPending}</div>
-        <div class="tile__value" data-animate-value="${s.pending}">0 ₽</div>
+        <div class="tile__value" data-animate-key="pending" data-animate-value="${s.pending}">0 ₽</div>
       </div>
     </div>
     <div class="tile tile--wide">
@@ -525,7 +534,7 @@ function renderStats() {
       </div>
       <div class="tile__text">
         <div class="tile__label" style="color:var(--muted)">${labelOverdue}</div>
-        <div class="tile__value" data-animate-value="${s.overdue}">0 ₽</div>
+        <div class="tile__value" data-animate-key="overdue" data-animate-value="${s.overdue}">0 ₽</div>
       </div>
     </div>
   `;
@@ -546,15 +555,15 @@ function renderTaxForecast() {
     <div class="forecastBand">
       <div class="forecastBand__item">
         <div class="forecastBand__label">Доход по договору за ${MONTHS_ACC[dashboardMonth().month]}</div>
-        <div class="forecastBand__value" data-animate-value="${f.gross}">0 ₽</div>
+        <div class="forecastBand__value" data-animate-key="taxGross" data-animate-value="${f.gross}">0 ₽</div>
       </div>
       <div class="forecastBand__item">
         <div class="forecastBand__label">Налог НПД</div>
-        <div class="forecastBand__value" style="color:#FF9E7A;" data-animate-value="${f.tax}">0 ₽</div>
+        <div class="forecastBand__value" style="color:#FF9E7A;" data-animate-key="taxTax" data-animate-value="${f.tax}">0 ₽</div>
       </div>
       <div class="forecastBand__item">
         <div class="forecastBand__label">На руки</div>
-        <div class="forecastBand__value" style="color:#7CE0AE;" data-animate-value="${f.net}">0 ₽</div>
+        <div class="forecastBand__value" style="color:#7CE0AE;" data-animate-key="taxNet" data-animate-value="${f.net}">0 ₽</div>
       </div>
     </div>
   `;
@@ -1692,20 +1701,48 @@ function applyUserIdentity(session) {
   if (nameInput) nameInput.value = name;
 }
 
+async function saveDisplayName(name) {
+  const { data, error } = await sb.auth.updateUser({ data: { display_name: name } });
+  if (error) throw error;
+  applyUserIdentity(data && data.user ? { user: data.user } : currentSession);
+}
+
 document.getElementById('profileForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  const input = document.getElementById('profileName');
-  const name = input.value.trim();
   try {
-    const { data, error } = await sb.auth.updateUser({ data: { display_name: name } });
-    if (error) throw error;
-    applyUserIdentity(data && data.user ? { user: data.user } : currentSession);
+    await saveDisplayName(document.getElementById('profileName').value.trim());
     showToast('Имя сохранено');
   } catch (err) {
     console.error(err);
     showToast('Не удалось сохранить имя');
   }
 });
+
+document.getElementById('nameForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = document.getElementById('nameFirstInput').value.trim();
+  closeModals();
+  if (!name) return;
+  try {
+    await saveDisplayName(name);
+    showToast('Имя сохранено');
+  } catch (err) {
+    console.error(err);
+    showToast('Не удалось сохранить имя');
+  }
+});
+
+// Имя спрашиваем один раз при первом входе: в настройках новый человек его просто не найдёт
+function maybeAskName(session) {
+  if (userDisplayName(session)) return;
+  const key = 'freelab-name-asked-' + session.user.id;
+  try {
+    if (localStorage.getItem(key)) return;
+    localStorage.setItem(key, '1');
+  } catch (e) { /* приватный режим: тогда просто спросим в этот раз */ }
+  const modal = document.getElementById('nameModal');
+  if (modal) modal.classList.add('is-open');
+}
 
 // ---------- Аутентификация (Supabase Auth) ----------
 
@@ -1842,8 +1879,10 @@ function showApp(session) {
   if (loadedForUserId !== session.user.id) {
     loadedForUserId = session.user.id;
     dashboardMonthOffset = 0; // новый вход всегда начинается с текущего месяца
+    lastAnimatedValues = {};  // и с чистого счёта для анимации сумм
     renderSkeleton();
     fetchState();
+    maybeAskName(session);
   }
 }
 

@@ -12,7 +12,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=17">
+<link rel="stylesheet" href="css/styles.css?v=18">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -394,6 +394,25 @@
 </div>
 
 <!-- CLIENT DETAIL MODAL -->
+<div class="modal" id="nameModal">
+  <div class="modal__panel">
+    <div class="modal__head">
+      <h2>Как вас зовут?</h2>
+    </div>
+    <p class="modalHint">Имя видите только вы — в приветствии на главной. Его можно изменить в настройках.</p>
+    <form id="nameForm">
+      <label class="field">
+        <span>Имя</span>
+        <input type="text" id="nameFirstInput" maxlength="40" autocomplete="given-name" placeholder="Имя">
+      </label>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" data-close>Пропустить</button>
+        <button type="submit" class="btn btn--dark">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal" id="dayDetailModal">
   <div class="modal__panel modal__panel--wide">
     <div class="modal__head">
@@ -426,6 +445,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=18"></script>
+<script src="js/app.js?v=19"></script>
 </body>
 </html>
