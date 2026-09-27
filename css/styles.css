@@ -21,6 +21,10 @@
 
 * { box-sizing: border-box; }
 
+/* Guarantee the native [hidden] behavior always wins, no matter what
+   display rule a class on the same element sets elsewhere. */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   background: var(--bg);
