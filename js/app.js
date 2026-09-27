@@ -1229,6 +1229,25 @@ function setClientContractUI(enabled) {
   document.getElementById('payerTypeWrap').hidden = !enabled;
 }
 
+// Редко нужные настройки спрятаны: простой случай — четыре поля, сложный по-прежнему доступен
+function setClientAdvancedOpen(open) {
+  const block = document.getElementById('clientAdvanced');
+  const toggle = document.getElementById('clientAdvToggle');
+  if (!block || !toggle) return;
+  block.hidden = !open;
+  toggle.classList.toggle('is-open', open);
+  toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function clientUsesAdvanced(c) {
+  if (!c) return false;
+  return c.planFrequency === 'weekly' || !!c.planAmount2 || !!c.planDay2 || !!(c.tasksDesc && c.tasksDesc.trim());
+}
+
+document.getElementById('clientAdvToggle')?.addEventListener('click', () => {
+  setClientAdvancedOpen(document.getElementById('clientAdvanced').hidden);
+});
+
 function setPayerTypeUI(type) {
   document.getElementById('clientPayerType').value = type;
   document.querySelectorAll('#clientForm [data-payer]').forEach(o => {
@@ -1265,6 +1284,9 @@ function openClientModal(editId) {
     setSplitPayUI(c.type === 'recurring' && c.planFrequency !== 'weekly' && (c.planAmount2 != null || c.planDay2 != null));
     setClientContractUI(!!(c.contract && c.contract.enabled));
     setPayerTypeUI(c.contract && c.contract.payerType === 'company' ? 'company' : 'individual');
+    // Если у клиента уже настроено что-то из скрытого, раскрываем — иначе человек
+    // откроет карточку и не увидит своих же настроек
+    setClientAdvancedOpen(clientUsesAdvanced(c));
   } else {
     document.getElementById('clientModalTitle').textContent = 'Новый клиент';
     setClientTypeUI('recurring');
@@ -1272,6 +1294,7 @@ function openClientModal(editId) {
     setSplitPayUI(false);
     setClientContractUI(false);
     setPayerTypeUI('individual');
+    setClientAdvancedOpen(false);
   }
   clientModal.classList.add('is-open');
   document.getElementById('clientName').focus();

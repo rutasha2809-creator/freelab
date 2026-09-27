@@ -589,6 +589,17 @@ button, input, select, textarea { font-family: inherit; }
 
 .modalHint { margin: 4px 0 14px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
 
+/* Раскрывающийся блок редких настроек в карточке клиента */
+.advToggle {
+  display: flex; align-items: center; gap: 8px; margin-top: 18px;
+  background: transparent; border: none; cursor: pointer; padding: 6px 0;
+  font-family: 'Manrope', sans-serif; font-size: 14px; font-weight: 700; color: var(--violet);
+}
+.advToggle__chevron { transition: transform .18s ease; flex-shrink: 0; }
+.advToggle.is-open .advToggle__chevron { transform: rotate(90deg); }
+.advBlock { margin-top: 4px; padding-top: 4px; border-top: 1.5px dashed var(--line); }
+@media (prefers-reduced-motion: reduce) { .advToggle__chevron { transition: none; } }
+
 .profileForm { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .profileForm input {
   flex: 1 1 200px; min-width: 0; padding: 11px 14px; border-radius: 12px;

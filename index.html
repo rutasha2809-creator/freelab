@@ -12,7 +12,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=18">
+<link rel="stylesheet" href="css/styles.css?v=19">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -273,15 +273,6 @@
         <input type="hidden" id="clientType" value="recurring">
       </label>
 
-      <label class="field" id="frequencyWrap">
-        <span>Периодичность</span>
-        <div class="segmented">
-          <button type="button" class="segmented__opt is-active" data-freq="monthly">Ежемесячно</button>
-          <button type="button" class="segmented__opt" data-freq="weekly">Еженедельно</button>
-        </div>
-        <input type="hidden" id="clientFrequency" value="monthly">
-      </label>
-
       <div class="field-row">
         <label class="field">
           <span id="planAmountLabel">Плановая сумма, ₽</span>
@@ -306,6 +297,39 @@
         </label>
       </div>
 
+      <label class="field">
+        <span>Форма отношений</span>
+        <div class="segmented">
+          <button type="button" class="segmented__opt is-active" data-contract="0">Без договора</button>
+          <button type="button" class="segmented__opt" data-contract="1">По договору</button>
+        </div>
+        <input type="hidden" id="clientContract" value="0">
+      </label>
+
+      <div class="field" id="payerTypeWrap" hidden>
+        <span>Кто платит (ставка налога НПД)</span>
+        <div class="segmented">
+          <button type="button" class="segmented__opt is-active" data-payer="individual">Физ. лицо · 4%</button>
+          <button type="button" class="segmented__opt" data-payer="company">Юр. лицо / ИП · 6%</button>
+        </div>
+        <input type="hidden" id="clientPayerType" value="individual">
+      </div>
+
+      <button type="button" class="advToggle" id="clientAdvToggle" aria-expanded="false">
+        <svg class="advToggle__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Настроить подробнее
+      </button>
+
+      <div class="advBlock" id="clientAdvanced" hidden>
+      <label class="field" id="frequencyWrap">
+        <span>Периодичность</span>
+        <div class="segmented">
+          <button type="button" class="segmented__opt is-active" data-freq="monthly">Ежемесячно</button>
+          <button type="button" class="segmented__opt" data-freq="weekly">Еженедельно</button>
+        </div>
+        <input type="hidden" id="clientFrequency" value="monthly">
+      </label>
+
       <label class="field field--checkbox" id="splitPayWrap">
         <input type="checkbox" id="clientSplitPay">
         <span>Выплата двумя частями в месяц (аванс + зарплата)</span>
@@ -327,22 +351,6 @@
         <textarea id="clientTasks" rows="2" placeholder="Что обычно делаете для этого клиента"></textarea>
       </label>
 
-      <label class="field">
-        <span>Форма отношений</span>
-        <div class="segmented">
-          <button type="button" class="segmented__opt is-active" data-contract="0">Без договора</button>
-          <button type="button" class="segmented__opt" data-contract="1">По договору</button>
-        </div>
-        <input type="hidden" id="clientContract" value="0">
-      </label>
-
-      <div class="field" id="payerTypeWrap" hidden>
-        <span>Кто платит (ставка налога НПД)</span>
-        <div class="segmented">
-          <button type="button" class="segmented__opt is-active" data-payer="individual">Физ. лицо · 4%</button>
-          <button type="button" class="segmented__opt" data-payer="company">Юр. лицо / ИП · 6%</button>
-        </div>
-        <input type="hidden" id="clientPayerType" value="individual">
       </div>
 
       <div class="modal__actions">
@@ -445,6 +453,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=19"></script>
+<script src="js/app.js?v=20"></script>
 </body>
 </html>
