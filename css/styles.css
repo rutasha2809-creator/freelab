@@ -201,7 +201,19 @@ button, input, select, textarea { font-family: inherit; }
 .tabbtn.is-active { color: var(--ink); border-bottom-color: var(--violet); }
 
 /* ---------- LISTS / CARDS ---------- */
-.list { display: flex; flex-direction: column; gap: 14px; }
+.list { display: flex; flex-direction: column; gap: 22px; }
+
+/* ---------- MONTH-GROUPED PAYMENT SCHEDULE ---------- */
+.monthGroup { display: flex; flex-direction: column; gap: 12px; }
+.monthGroup__head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding: 0 4px;
+}
+.monthGroup__title {
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; color: var(--ink);
+}
+.monthGroup__sum { font-size: 13px; font-weight: 700; color: var(--muted); }
+.monthGroup__rows { display: flex; flex-direction: column; gap: 10px; }
 
 .row {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
