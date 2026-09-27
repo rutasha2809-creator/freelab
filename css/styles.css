@@ -200,21 +200,27 @@ button, input, select, textarea { font-family: inherit; }
 .btnLogout:hover { background: var(--ink-soft); color: #fff; }
 
 /* ---------- AUTH SCREEN ---------- */
+/* Экран входа показывает тот же живой фон, что и приложение */
 .authScreen {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: var(--surface-dark); padding: 24px;
+  background: transparent; padding: 24px;
 }
 .authCard {
-  width: 100%; max-width: 360px; background: #fff; border-radius: 20px;
-  padding: 32px 28px; box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  width: 100%; max-width: 360px; background: var(--paper); border-radius: var(--r-card);
+  padding: 32px 28px; box-shadow: var(--shadow-hi);
+  border: 1px solid var(--line);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
 }
+/* Название на карточке входа — цветом темы, иначе белое по белому не видно */
+.authCard .brand__name { color: var(--ink); }
 .authCard .field { display: block; margin-bottom: 14px; }
 .authCard .field span {
-  display: block; font-size: 12.5px; font-weight: 600; color: #6B6480; margin-bottom: 6px;
+  display: block; font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 6px;
 }
 .authCard .field input {
-  width: 100%; padding: 11px 13px; border-radius: 10px;
-  border: 1.5px solid #E7E2F2; font-size: 14px; font-family: inherit;
+  width: 100%; padding: 11px 13px; border-radius: var(--r-control);
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  font-size: 14px; font-family: inherit;
   outline: none; transition: border-color .15s;
 }
 .authCard .field input:focus { border-color: var(--violet); }

@@ -903,7 +903,10 @@ function clientSparklineSVG(client) {
 // ---------- Рендер: списки платежей ----------
 
 function initials(name) {
-  return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  // Берём только буквы и цифры: иначе из «Екатерина (Мебельный центр)» выходило «Е(»
+  const words = name.split(/[^\p{L}\p{N}]+/u).filter(Boolean).slice(0, 2);
+  if (!words.length) return '—';
+  return words.map(w => w[0]).join('').toUpperCase();
 }
 
 // Инициалы клиентов — без цвета: в интерфейсе цветом обозначается только просрочка
