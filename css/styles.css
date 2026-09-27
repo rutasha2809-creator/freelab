@@ -290,9 +290,58 @@ button, input, select, textarea { font-family: inherit; }
   padding: 16px 20px; flex-wrap: wrap;
 }
 .ctRow__left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.ctRow__stats { display: flex; gap: 26px; }
+.ctRow__stats { display: flex; align-items: center; gap: 26px; }
 .ctRow__stat-label { font-size: 11.5px; color: var(--muted); }
 .ctRow__stat-value { font-size: 14.5px; font-weight: 700; margin-top: 2px; }
+.ctRow__sparkline { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.ctRow__sparkline-label { font-size: 10.5px; color: var(--muted-2); }
+
+/* ---------- MONTH PROGRESS BAR ---------- */
+.progressCard {
+  background: var(--paper); border: 1.5px solid var(--line); border-radius: 18px;
+  padding: 18px 22px;
+}
+.progressCard__row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+.progressCard__label { font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.progressCard__pct { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: var(--violet); }
+.progressCard__track { height: 10px; border-radius: 100px; background: var(--violet-soft); overflow: hidden; }
+.progressCard__fill {
+  height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--violet), var(--coral));
+  transition: width .6s cubic-bezier(.2,.7,.3,1);
+}
+.progressCard__sub { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+
+/* ---------- MONTH HEATMAP (мини-календарь) ---------- */
+.heatmapCard {
+  background: var(--paper); border: 1.5px solid var(--line); border-radius: 18px;
+  padding: 18px 22px;
+}
+.heatmapHead { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.heatmapTitle { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; color: var(--ink); }
+.heatmapLegend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); }
+.heatmapLegend span { display: inline-flex; align-items: center; gap: 5px; }
+.legendDot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.legendDot--pending { background: var(--amber); }
+.legendDot--paid { background: var(--green); }
+.legendDot--overdue { background: var(--red); }
+.heatmapWeekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+  font-size: 11px; color: var(--muted-2); font-weight: 700; text-align: center; margin-bottom: 6px;
+}
+.heatmapGrid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.heatmapCell {
+  aspect-ratio: 1; border-radius: 9px; background: var(--bg); border: 1.5px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600; color: var(--muted-2);
+}
+.heatmapCell--empty { background: transparent; border-color: transparent; }
+.heatmapCell--pending { background: var(--amber-soft); border-color: transparent; color: var(--amber); }
+.heatmapCell--paid { background: var(--green-soft); border-color: transparent; color: var(--green); }
+.heatmapCell--overdue { background: var(--red-soft); border-color: transparent; color: var(--red); }
+.heatmapCell--today { border-color: var(--violet); border-width: 2px; }
+@media (max-width: 560px) {
+  .heatmapCell { font-size: 10.5px; border-radius: 7px; }
+}
 
 /* ---------- TAX FORECAST BAND ---------- */
 .forecastBand {

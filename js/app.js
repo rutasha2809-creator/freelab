@@ -360,6 +360,7 @@ async function clearFutureAutoPayments(clientId) {
 }
 
 const WEEKDAYS = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+const WEEKDAY_SHORT = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 
 function todayLabel() {
@@ -491,6 +492,115 @@ function renderTaxForecast() {
     </div>
   `;
   animateValuesIn(el);
+}
+
+// ---------- Рендер: прогресс по месяцу ----------
+
+function renderMonthProgress() {
+  const el = document.getElementById('monthProgress');
+  if (!el) return;
+  const s = computeStats();
+  const total = s.expected || 0;
+  if (!total) { el.innerHTML = ''; return; }
+  const pct = Math.max(0, Math.min(100, Math.round((s.received / total) * 100)));
+  el.innerHTML = `
+    <div class="progressCard">
+      <div class="progressCard__row">
+        <span class="progressCard__label">Собрано за ${MONTHS[new Date().getMonth()]}</span>
+        <span class="progressCard__pct">${pct}%</span>
+      </div>
+      <div class="progressCard__track"><div class="progressCard__fill" style="width:0%" data-target-width="${pct}"></div></div>
+      <div class="progressCard__sub">${formatMoney(s.received)} из ${formatMoney(total)} по плану на месяц</div>
+    </div>
+  `;
+  const fill = el.querySelector('.progressCard__fill');
+  if (fill) requestAnimationFrame(() => { fill.style.width = fill.dataset.targetWidth + '%'; });
+}
+
+// ---------- Рендер: тепловая карта месяца ----------
+
+function renderMonthHeatmap() {
+  const el = document.getElementById('monthHeatmap');
+  if (!el) return;
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth();
+  const totalDays = daysInMonth(year, month);
+  const firstIsoWeekday = new Date(year, month, 1).getDay() || 7; // 1=пн...7=вс
+
+  const byDay = {};
+  state.payments.forEach(p => {
+    const d = new Date(p.planDate + 'T00:00:00');
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      (byDay[d.getDate()] ||= []).push(p);
+    }
+  });
+
+  const today = todayISO();
+  const cells = [];
+  for (let i = 1; i < firstIsoWeekday; i++) cells.push('<div class="heatmapCell heatmapCell--empty"></div>');
+  for (let day = 1; day <= totalDays; day++) {
+    const iso = dateForDayInMonth(year, month, day);
+    const dayPayments = byDay[day] || [];
+    let cls = 'heatmapCell';
+    let title = '';
+    if (dayPayments.length) {
+      const allPaid = dayPayments.every(p => p.factDate);
+      const anyOverdue = dayPayments.some(p => !p.factDate && p.planDate < today);
+      cls += allPaid ? ' heatmapCell--paid' : anyOverdue ? ' heatmapCell--overdue' : ' heatmapCell--pending';
+      const sum = dayPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+      title = `${dayPayments.length} плат. на ${formatMoney(sum)}`;
+    }
+    if (iso === today) cls += ' heatmapCell--today';
+    cells.push(`<div class="${cls}" title="${escapeHTML(title)}"><span>${day}</span></div>`);
+  }
+
+  el.innerHTML = `
+    <div class="heatmapHead">
+      <span class="heatmapTitle">${MONTHS_NOM[month]}</span>
+      <div class="heatmapLegend">
+        <span><i class="legendDot legendDot--pending"></i>Ожидается</span>
+        <span><i class="legendDot legendDot--paid"></i>Оплачено</span>
+        <span><i class="legendDot legendDot--overdue"></i>Просрочено</span>
+      </div>
+    </div>
+    <div class="heatmapWeekdays">${WEEKDAY_SHORT.map(w => `<span>${w}</span>`).join('')}</div>
+    <div class="heatmapGrid">${cells.join('')}</div>
+  `;
+}
+
+// ---------- Рендер: мини-график истории платежей клиента (спарклайн) ----------
+
+function clientSparklineSVG(client) {
+  const now = new Date();
+  const keys = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  const byKey = Object.fromEntries(keys.map(k => [k, 0]));
+  state.payments.forEach(p => {
+    if (p.clientId !== client.id || !p.factDate) return;
+    const key = monthGroupKey(p.factDate);
+    if (key in byKey) byKey[key] += Number(p.amount) || 0;
+  });
+  const values = keys.map(k => byKey[k]);
+  if (values.filter(v => v > 0).length < 2) return ''; // мало истории — график не показателен
+
+  const w = 84, h = 26, pad = 3;
+  const max = Math.max(...values, 1);
+  const stepX = (w - pad * 2) / (values.length - 1);
+  const points = values.map((v, i) => [
+    pad + i * stepX,
+    h - pad - (v / max) * (h - pad * 2),
+  ]);
+  const path = points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const last = points[points.length - 1];
+  return `
+    <svg class="sparkline" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+      <path d="${path}" fill="none" stroke="var(--violet)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.4" fill="var(--violet)"/>
+    </svg>
+  `;
 }
 
 // ---------- Рендер: списки платежей ----------
@@ -684,6 +794,7 @@ function renderClientsTable() {
       const color = avatarColor(client.id);
       const planLine = clientPlanLineText(client);
       const subLine = planLine || client.tasksDesc || '';
+      const sparkline = clientSparklineSVG(client);
       return `
         <div class="ctRow" data-client-id="${client.id}">
           <div class="ctRow__left">
@@ -706,6 +817,11 @@ function renderClientsTable() {
               <div class="ctRow__stat-label">Открытых записей</div>
               <div class="ctRow__stat-value">${openCount}</div>
             </div>
+            ${sparkline ? `
+            <div class="ctRow__sparkline">
+              <span class="ctRow__sparkline-label">6 мес.</span>
+              ${sparkline}
+            </div>` : ''}
           </div>
           <div class="row__actions">
             <button class="iconbtn" title="Добавить задачу" data-action="add-payment-for" data-id="${client.id}">
@@ -859,6 +975,8 @@ function renderReports() {
 
 function renderAll() {
   renderStats();
+  renderMonthProgress();
+  renderMonthHeatmap();
   renderTaxForecast();
   renderLists();
   renderClientsTable();
