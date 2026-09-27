@@ -330,7 +330,7 @@ button, input, select, textarea { font-family: inherit; }
 @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
 @keyframes border-spin { to { --angle: 360deg; } }
 
-.hero-spark { position: absolute; right: 0; bottom: 0; left: 0; height: 42px; opacity: .9; z-index: 1; }
+.hero-spark { position: absolute; left: 0; bottom: 0; width: 100%; height: 42px; opacity: .9; z-index: 1; }
 .hero-blob { display: none; }
 
 .tile--small { grid-column: span 1; }
@@ -400,30 +400,9 @@ button, input, select, textarea { font-family: inherit; }
 .row__amount { font-size: 18px; font-weight: 700; min-width: 100px; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .row__amount-sub { font-size: 11px; font-weight: 600; color: var(--muted); }
 
-/* Статус — не цветная таблетка, а точка с подписью: заметно, но не кричит */
-.pill {
-  font-size: 12px; font-weight: 700; white-space: nowrap;
-  padding: 0 0 0 15px; position: relative; background: transparent;
-}
-.pill::before {
-  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-  width: 7px; height: 7px; border-radius: 50%;
-}
-.pill--pending { color: var(--muted); }
-.pill--pending::before { background: var(--amber); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 16%, transparent); }
-.pill--paid { color: var(--muted); }
-.pill--paid::before { background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 16%, transparent); }
+/* Статус — только слово: без точек и цветных таблеток */
+.pill { font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--muted); background: transparent; padding: 0; }
 .pill--overdue { color: var(--red); font-weight: 700; }
-/* Пульс у просрочки — единственное, что шевелится само, и именно там, где нужно внимание */
-.pill--overdue::before {
-  background: var(--red);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 16%, transparent);
-  animation: status-pulse 2.4s ease-in-out infinite;
-}
-@keyframes status-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 16%, transparent); }
-  50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--red) 3%, transparent); }
-}
 
 .row__actions { display: flex; gap: 6px; }
 .iconbtn {

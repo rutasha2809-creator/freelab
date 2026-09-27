@@ -569,7 +569,6 @@ function renderStats() {
         <div class="tile__label">${labelExpected}</div>
         <div class="tile__value" data-animate-key="expected" data-animate-value="${s.expected}">0 ₽</div>
       </div>
-      ${heroBreakdownHTML(s)}
       ${spark ? `<svg class="hero-spark" viewBox="0 0 260 46" preserveAspectRatio="none">${spark}</svg>` : ''}
     </div>
     <div class="tile tile--small">
@@ -1627,7 +1626,7 @@ async function deleteClientWithConfirm(id) {
   }
 }
 
-document.getElementById('btnNewPaymentTop').addEventListener('click', () => openPaymentModal());
+document.getElementById('btnNewPaymentTop')?.addEventListener('click', () => openPaymentModal());
 document.getElementById('btnNewClientTop').addEventListener('click', () => openClientModal());
 
 // ---------- Карточка клиента: открытие по клику на строку ----------
