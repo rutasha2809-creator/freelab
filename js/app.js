@@ -1,6 +1,9 @@
-// Фрилаб — трекер клиентов. Данные хранятся локально в браузере (localStorage).
+// Фрилаб — трекер клиентов. Данные хранятся в облаке (Supabase), доступ — по e-mail/паролю.
 
-const STORAGE_KEY = 'freelab_v1';
+const SUPABASE_URL = 'https://wwljbdfbrbzfyceqgqhe.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3bGpiZGZicmJ6ZnljZXFncWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MTc3MTgsImV4cCI6MjEwNjA5MzcxOH0.R_51onVZkX157qNvnz_fQuASK0Z7KGOywGHiqqWZN7A';
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /** @typedef {{
  *   id:string, name:string, type:'recurring'|'oneoff', tasksDesc:string,
@@ -26,25 +29,75 @@ function normalizeClient(c) {
   };
 }
 
-let state = loadState();
+// ---------- Supabase: соответствие строк БД и объектов приложения ----------
 
-function loadState() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { clients: [], payments: [] };
-    const parsed = JSON.parse(raw);
-    return {
-      clients: Array.isArray(parsed.clients) ? parsed.clients.map(normalizeClient) : [],
-      payments: Array.isArray(parsed.payments) ? parsed.payments : [],
-    };
-  } catch (e) {
-    console.error('Не удалось прочитать данные', e);
-    return { clients: [], payments: [] };
-  }
+function rowToClient(row) {
+  return normalizeClient({
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    tasksDesc: row.tasks_desc,
+    planAmount: row.plan_amount,
+    planDay: row.plan_day,
+    planDate: row.plan_date,
+    contract: { enabled: row.contract_enabled, payerType: row.payer_type },
+    createdAt: row.created_at,
+  });
 }
 
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function clientToRow(c) {
+  return {
+    name: c.name,
+    type: c.type,
+    tasks_desc: c.tasksDesc || '',
+    plan_amount: c.planAmount,
+    plan_day: c.planDay,
+    plan_date: c.planDate,
+    contract_enabled: !!(c.contract && c.contract.enabled),
+    payer_type: (c.contract && c.contract.payerType) || 'individual',
+  };
+}
+
+function rowToPayment(row) {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    task: row.task,
+    amount: Number(row.amount) || 0,
+    planDate: row.plan_date,
+    factDate: row.fact_date,
+    createdAt: row.created_at,
+  };
+}
+
+function paymentToRow(p) {
+  return {
+    client_id: p.clientId,
+    task: p.task,
+    amount: p.amount,
+    plan_date: p.planDate,
+    fact_date: p.factDate,
+  };
+}
+
+let state = { clients: [], payments: [] };
+
+async function fetchState() {
+  const [{ data: clientRows, error: cErr }, { data: paymentRows, error: pErr }] = await Promise.all([
+    sb.from('clients').select('*'),
+    sb.from('payments').select('*'),
+  ]);
+  if (cErr || pErr) {
+    console.error(cErr || pErr);
+    showToast('Не удалось загрузить данные из облака');
+    return;
+  }
+  state = {
+    clients: (clientRows || []).map(rowToClient),
+    payments: (paymentRows || []).map(rowToPayment),
+  };
+  setReportPreset('month');
+  renderAll();
 }
 
 function uid() {
@@ -621,7 +674,7 @@ function openClientModal(editId) {
   document.getElementById('clientName').focus();
 }
 
-clientForm.addEventListener('submit', e => {
+clientForm.addEventListener('submit', async e => {
   e.preventDefault();
   const id = document.getElementById('clientId').value;
   const name = document.getElementById('clientName').value.trim();
@@ -636,16 +689,26 @@ clientForm.addEventListener('submit', e => {
   const payerType = document.getElementById('clientPayerType').value;
   if (!name) return;
 
-  if (id) {
-    const c = getClient(id);
-    Object.assign(c, { name, type, tasksDesc, planAmount, planDay, planDate, contract: { enabled: contractEnabled, payerType } });
-  } else {
-    state.clients.push({ id: uid(), name, type, tasksDesc, planAmount, planDay, planDate, contract: { enabled: contractEnabled, payerType }, createdAt: todayISO() });
+  const draft = { name, type, tasksDesc, planAmount, planDay, planDate, contract: { enabled: contractEnabled, payerType } };
+  const row = clientToRow(draft);
+
+  try {
+    if (id) {
+      const { error } = await sb.from('clients').update(row).eq('id', id);
+      if (error) throw error;
+      Object.assign(getClient(id), draft);
+    } else {
+      const { data, error } = await sb.from('clients').insert(row).select().single();
+      if (error) throw error;
+      state.clients.push(rowToClient(data));
+    }
+    closeModals();
+    renderAll();
+    showToast(id ? 'Клиент обновлён' : 'Клиент добавлен');
+  } catch (err) {
+    console.error(err);
+    showToast('Не удалось сохранить клиента');
   }
-  saveState();
-  closeModals();
-  renderAll();
-  showToast(id ? 'Клиент обновлён' : 'Клиент добавлен');
 });
 
 // ---------- Модалка: платёж ----------
@@ -706,7 +769,7 @@ function openPaymentModal({ editId, presetClientId } = {}) {
   document.getElementById('paymentTask').focus();
 }
 
-paymentForm.addEventListener('submit', e => {
+paymentForm.addEventListener('submit', async e => {
   e.preventDefault();
   const id = document.getElementById('paymentId').value;
   const clientId = document.getElementById('paymentClient').value;
@@ -716,16 +779,26 @@ paymentForm.addEventListener('submit', e => {
   const factDate = document.getElementById('paymentFactDate').value || null;
   if (!clientId || !task || !planDate) return;
 
-  if (id) {
-    const p = state.payments.find(x => x.id === id);
-    Object.assign(p, { clientId, task, amount, planDate, factDate });
-  } else {
-    state.payments.push({ id: uid(), clientId, task, amount, planDate, factDate, createdAt: todayISO() });
+  const draft = { clientId, task, amount, planDate, factDate };
+  const row = paymentToRow(draft);
+
+  try {
+    if (id) {
+      const { error } = await sb.from('payments').update(row).eq('id', id);
+      if (error) throw error;
+      Object.assign(state.payments.find(x => x.id === id), draft);
+    } else {
+      const { data, error } = await sb.from('payments').insert(row).select().single();
+      if (error) throw error;
+      state.payments.push(rowToPayment(data));
+    }
+    closeModals();
+    renderAll();
+    showToast(id ? 'Запись обновлена' : 'Запись добавлена');
+  } catch (err) {
+    console.error(err);
+    showToast('Не удалось сохранить запись');
   }
-  saveState();
-  closeModals();
-  renderAll();
-  showToast(id ? 'Запись обновлена' : 'Запись добавлена');
 });
 
 // ---------- Общие действия модалок ----------
@@ -742,24 +815,38 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModals(
 
 // ---------- Делегирование кликов по спискам ----------
 
-document.addEventListener('click', e => {
+document.addEventListener('click', async e => {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
   const action = btn.dataset.action;
   const id = btn.dataset.id;
 
   if (action === 'mark-paid') {
-    const p = state.payments.find(x => x.id === id);
-    p.factDate = todayISO();
-    saveState(); renderAll();
-    showToast('Отмечено как оплачено');
+    try {
+      const factDate = todayISO();
+      const { error } = await sb.from('payments').update({ fact_date: factDate }).eq('id', id);
+      if (error) throw error;
+      state.payments.find(x => x.id === id).factDate = factDate;
+      renderAll();
+      showToast('Отмечено как оплачено');
+    } catch (err) {
+      console.error(err);
+      showToast('Не удалось обновить запись');
+    }
   } else if (action === 'edit-payment') {
     openPaymentModal({ editId: id });
   } else if (action === 'delete-payment') {
     if (confirm('Удалить эту запись?')) {
-      state.payments = state.payments.filter(p => p.id !== id);
-      saveState(); renderAll();
-      showToast('Запись удалена');
+      try {
+        const { error } = await sb.from('payments').delete().eq('id', id);
+        if (error) throw error;
+        state.payments = state.payments.filter(p => p.id !== id);
+        renderAll();
+        showToast('Запись удалена');
+      } catch (err) {
+        console.error(err);
+        showToast('Не удалось удалить запись');
+      }
     }
   } else if (action === 'edit-client') {
     closeModals();
@@ -775,18 +862,24 @@ document.addEventListener('click', e => {
   }
 });
 
-function deleteClientWithConfirm(id) {
+async function deleteClientWithConfirm(id) {
   const hasPayments = state.payments.some(p => p.clientId === id);
   const msg = hasPayments
     ? 'У этого клиента есть записи о платежах. Удалить клиента и все его записи?'
     : 'Удалить этого клиента?';
   if (confirm(msg)) {
-    state.clients = state.clients.filter(c => c.id !== id);
-    state.payments = state.payments.filter(p => p.clientId !== id);
-    saveState();
-    closeModals();
-    renderAll();
-    showToast('Клиент удалён');
+    try {
+      const { error } = await sb.from('clients').delete().eq('id', id);
+      if (error) throw error;
+      state.clients = state.clients.filter(c => c.id !== id);
+      state.payments = state.payments.filter(p => p.clientId !== id);
+      closeModals();
+      renderAll();
+      showToast('Клиент удалён');
+    } catch (err) {
+      console.error(err);
+      showToast('Не удалось удалить клиента');
+    }
   }
 }
 
@@ -838,28 +931,65 @@ importFile.addEventListener('change', () => {
   const file = importFile.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const parsed = JSON.parse(reader.result);
       if (!Array.isArray(parsed.clients) || !Array.isArray(parsed.payments)) throw new Error('bad shape');
-      state = { clients: parsed.clients.map(normalizeClient), payments: parsed.payments };
-      saveState();
-      renderAll();
+      if (!confirm('Импорт заменит все текущие данные в облаке резервной копией из файла. Продолжить?')) return;
+
+      const clients = parsed.clients.map(normalizeClient);
+      const payments = parsed.payments;
+
+      // Удаляем всё текущее (платежи удалятся каскадом вместе с клиентами)
+      const { data: existing, error: exErr } = await sb.from('clients').select('id');
+      if (exErr) throw exErr;
+      if (existing && existing.length) {
+        const { error: delErr } = await sb.from('clients').delete().in('id', existing.map(r => r.id));
+        if (delErr) throw delErr;
+      }
+
+      // Вставляем клиентов, запоминаем соответствие старых id новым
+      const idMap = new Map();
+      for (const c of clients) {
+        const { data, error } = await sb.from('clients').insert(clientToRow(c)).select().single();
+        if (error) throw error;
+        idMap.set(c.id, data.id);
+      }
+      for (const p of payments) {
+        const newClientId = idMap.get(p.clientId);
+        if (!newClientId) continue;
+        const row = paymentToRow({ ...p, clientId: newClientId });
+        const { error } = await sb.from('payments').insert(row);
+        if (error) throw error;
+      }
+
+      await fetchState();
       showToast('Данные загружены');
     } catch (err) {
-      alert('Не удалось прочитать файл. Убедитесь, что это резервная копия из Фрилаб.');
+      console.error(err);
+      alert('Не удалось прочитать файл или сохранить данные в облако. Убедитесь, что это резервная копия из Фрилаб.');
     }
   };
   reader.readAsText(file);
   importFile.value = '';
 });
 
-document.getElementById('btnReset').addEventListener('click', () => {
+document.getElementById('btnReset').addEventListener('click', async () => {
   if (confirm('Точно удалить всех клиентов и все платежи? Это действие необратимо.')) {
-    state = { clients: [], payments: [] };
-    saveState();
-    renderAll();
-    showToast('Все данные удалены');
+    try {
+      const { data: existing, error: exErr } = await sb.from('clients').select('id');
+      if (exErr) throw exErr;
+      if (existing && existing.length) {
+        const { error: delErr } = await sb.from('clients').delete().in('id', existing.map(r => r.id));
+        if (delErr) throw delErr;
+      }
+      state = { clients: [], payments: [] };
+      renderAll();
+      showToast('Все данные удалены');
+    } catch (err) {
+      console.error(err);
+      showToast('Не удалось удалить данные');
+    }
   }
 });
 
@@ -874,7 +1004,7 @@ function showToast(msg) {
   toastTimer = setTimeout(() => el.classList.remove('is-visible'), 2200);
 }
 
-// ---------- Инициализация ----------
+// ---------- Инициализация: приветствие ----------
 
 function initGreeting() {
   const hour = new Date().getHours();
@@ -883,6 +1013,91 @@ function initGreeting() {
   document.getElementById('todayLabel').textContent = `${todayLabel()} — вот как идут дела с клиентами`;
 }
 
-initGreeting();
-setReportPreset('month');
-renderAll();
+// ---------- Аутентификация (Supabase Auth) ----------
+
+const authScreenEl = document.getElementById('authScreen');
+const appEl = document.getElementById('app');
+const authForm = document.getElementById('authForm');
+const authEmailInput = document.getElementById('authEmail');
+const authPasswordInput = document.getElementById('authPassword');
+const authErrorEl = document.getElementById('authError');
+const authSubmitBtn = document.getElementById('authSubmitBtn');
+const authToggleBtn = document.getElementById('authToggleMode');
+const btnLogout = document.getElementById('btnLogout');
+
+let authMode = 'signin'; // 'signin' | 'signup'
+
+function setAuthMode(mode) {
+  authMode = mode;
+  authErrorEl.hidden = true;
+  if (mode === 'signup') {
+    authSubmitBtn.textContent = 'Зарегистрироваться';
+    authToggleBtn.textContent = 'Уже есть аккаунт? Войти';
+  } else {
+    authSubmitBtn.textContent = 'Войти';
+    authToggleBtn.textContent = 'Нет аккаунта? Зарегистрироваться';
+  }
+}
+
+authToggleBtn.addEventListener('click', () => setAuthMode(authMode === 'signin' ? 'signup' : 'signin'));
+
+authForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = authEmailInput.value.trim();
+  const password = authPasswordInput.value;
+  authErrorEl.hidden = true;
+  authSubmitBtn.disabled = true;
+  try {
+    if (authMode === 'signup') {
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) throw error;
+      if (!data.session) {
+        authErrorEl.hidden = false;
+        authErrorEl.style.background = '#EAF7F0';
+        authErrorEl.style.color = 'var(--green)';
+        authErrorEl.textContent = 'Проверьте почту и подтвердите e-mail, затем войдите.';
+        setAuthMode('signin');
+      }
+    } else {
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    }
+  } catch (err) {
+    authErrorEl.hidden = false;
+    authErrorEl.style.background = '#FDEAEA';
+    authErrorEl.style.color = 'var(--red)';
+    authErrorEl.textContent = err.message === 'Invalid login credentials'
+      ? 'Неверный e-mail или пароль'
+      : (err.message || 'Ошибка входа');
+  } finally {
+    authSubmitBtn.disabled = false;
+  }
+});
+
+btnLogout.addEventListener('click', async () => {
+  await sb.auth.signOut();
+});
+
+function showApp(session) {
+  authScreenEl.hidden = true;
+  appEl.hidden = false;
+  document.getElementById('sidebarEmail').textContent = session.user.email;
+  initGreeting();
+  fetchState();
+}
+
+function showAuth() {
+  appEl.hidden = true;
+  authScreenEl.hidden = false;
+  authForm.reset();
+}
+
+sb.auth.onAuthStateChange((_event, session) => {
+  if (session) showApp(session);
+  else showAuth();
+});
+
+sb.auth.getSession().then(({ data }) => {
+  if (data.session) showApp(data.session);
+  else showAuth();
+});
