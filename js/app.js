@@ -1,4 +1,4 @@
-// Фрилаб — трекер клиентов. Данные хранятся в облаке (Supabase), доступ — по e-mail/паролю.
+// Freelance — трекер клиентов. Данные хранятся в облаке (Supabase), доступ — по e-mail/паролю.
 
 const SUPABASE_URL = 'https://wwljbdfbrbzfyceqgqhe.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3bGpiZGZicmJ6ZnljZXFncWhlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MTc3MTgsImV4cCI6MjEwNjA5MzcxOH0.R_51onVZkX157qNvnz_fQuASK0Z7KGOywGHiqqWZN7A';
@@ -517,12 +517,12 @@ function overallSparklineSVG() {
   return `
     <defs>
       <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="var(--violet)" stop-opacity="0.34"/>
-        <stop offset="100%" stop-color="var(--violet)" stop-opacity="0"/>
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.34"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
       </linearGradient>
     </defs>
     <path d="${path} L${w},${h} L0,${h} Z" fill="url(#sparkFill)"/>
-    <path d="${path}" fill="none" stroke="var(--violet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="${path}" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
   `;
 }
 
@@ -550,6 +550,22 @@ function heroBreakdownHTML(s) {
   `;
 }
 
+// Пока истории платежей мало, вместо графика рисуем мягкую волну —
+// плитка не должна выглядеть пустой у нового пользователя
+function decorativeWaveSVG() {
+  return `
+    <defs>
+      <linearGradient id="waveFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="M0,32 C40,28 58,14 90,18 C122,22 136,38 168,30 C200,22 220,6 260,12 L260,46 L0,46 Z" fill="url(#waveFill)"/>
+    <path d="M0,32 C40,28 58,14 90,18 C122,22 136,38 168,30 C200,22 220,6 260,12"
+          fill="none" stroke="rgba(255,255,255,.75)" stroke-width="2" stroke-linecap="round"/>
+  `;
+}
+
 function renderStats() {
   const s = computeStats();
   const { month, offset } = dashboardMonth();
@@ -565,11 +581,12 @@ function renderStats() {
   const labelOverdue = 'Просрочено всего';
   el.innerHTML = `
     <div class="tile tile--hero tile--dark">
+      <div class="hero-halo"></div>
       <div>
         <div class="tile__label">${labelExpected}</div>
         <div class="tile__value" data-animate-key="expected" data-animate-value="${s.expected}">0 ₽</div>
       </div>
-      ${spark ? `<svg class="hero-spark" viewBox="0 0 260 46" preserveAspectRatio="none">${spark}</svg>` : ''}
+      <svg class="hero-spark" viewBox="0 0 260 46" preserveAspectRatio="none">${spark || decorativeWaveSVG()}</svg>
     </div>
     <div class="tile tile--small">
       <div class="tile__icon">
@@ -1710,7 +1727,7 @@ importFile.addEventListener('change', () => {
       showToast('Данные загружены');
     } catch (err) {
       console.error(err);
-      alert('Не удалось прочитать файл или сохранить данные в облако. Убедитесь, что это резервная копия из Фрилаб.');
+      alert('Не удалось прочитать файл или сохранить данные в облако. Убедитесь, что это резервная копия из Freelance.');
     }
   };
   reader.readAsText(file);

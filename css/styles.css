@@ -1,77 +1,81 @@
-/* Палитра держится на серой шкале с одним акцентом. Цвет несёт смысл —
-   статус платежа, — а не украшает. Глубину даёт свет и тень, а не насыщенность. */
+/* Палитра построена на одной градиентной гамме: фиолетовый — малиновый — бирюза.
+   Цвет не рассыпан по мелочам, поверхности стеклянные, фон живой. */
 :root {
-  --ink: #16161A;
-  --ink-soft: #24242C;
-  --violet: #4A3AB8;
-  --violet-soft: #EEEDF7;
-  --coral: #6E5AE6;
-  --coral-soft: #EEEDF7;
-  --green: #12805C;
-  --green-soft: #EDF3F0;
-  --amber: #8A6100;
-  --amber-soft: #F5F1E8;
-  --red: #B42318;
-  --red-soft: #F8EEED;
-  --red-border: #E9DAD8;
-  /* Светлая тема — не белая: холодный дымчатый фон и слегка приглушённая «бумага» */
-  --bg: #ECECF2;
-  --paper: #FAFAFC;
-  --line: #E0E0E9;
-  --muted: #67677A;
-  --muted-2: #9494A6;
+  --v1: #7C5CFF;
+  --v2: #C061FF;
+  --v3: #FF5CA8;
+  --aqua: #2BB9AE;
 
-  /* Акцентная плитка. В светлой теме она светлая с оттенком, а не чёрная */
-  --accent-bg: linear-gradient(158deg, #F3F2FC 0%, #E8E6F6 100%);
-  --accent-fg: var(--ink);
-  --accent-label: #5C5674;
-  --accent-border: #DBD8EE;
-  /* Поверхности, которые всегда тёмные независимо от темы (сайдбар, экран входа,
-     тёмные акцентные элементы) — не путать с --ink, который меняется в тёмной теме */
-  --surface-dark: #17171E;
+  --ink: #1A1430;
+  --ink-soft: #2A2246;
+  --violet: #7C5CFF;
+  --violet-soft: rgba(124,92,255,.12);
+  --coral: #C061FF;
+  --coral-soft: rgba(192,97,255,.12);
+  --green: #0F9E8F;
+  --green-soft: rgba(43,185,174,.14);
+  --amber: #7C5CFF;
+  --amber-soft: rgba(124,92,255,.12);
+  --red: #E0425F;
+  --red-soft: rgba(224,66,95,.12);
+  --red-border: rgba(224,66,95,.30);
 
-  /* Многослойные тени вместо жирных рамок — отсюда ощущение материала */
-  --shadow: 0 1px 2px rgba(16,16,22,.05), 0 6px 16px -6px rgba(16,16,22,.10);
-  --shadow-hi: 0 2px 4px rgba(16,16,22,.06), 0 18px 40px -12px rgba(16,16,22,.16);
-  --accent-glow: rgba(74,58,184,.10);
+  --bg: #F1EDFB;
+  --paper: rgba(255,255,255,.70);
+  --line: rgba(26,20,48,.10);
+  --muted: #6A6188;
+  --muted-2: #938BB3;
+  --surface-dark: #17122B;
+
+  --shadow: 0 2px 6px rgba(40,20,90,.06), 0 16px 40px -20px rgba(40,20,90,.28);
+  --shadow-hi: 0 4px 10px rgba(40,20,90,.10), 0 28px 60px -22px rgba(60,30,120,.45);
+  --accent-glow: rgba(124,92,255,.16);
   --glass: rgba(255,255,255,.72);
+  --blur: blur(24px) saturate(1.5);
 
-  /* Скругления: спокойнее, чем были 18–22px */
-  --r-card: 14px;
-  --r-control: 10px;
-  --r-chip: 7px;
+  /* Главная плитка — насыщенный градиент, а не чёрный прямоугольник */
+  --accent-bg: linear-gradient(140deg, #7C5CFF 0%, #A85BFF 48%, #FF5CA8 100%);
+  --accent-fg: #FFFFFF;
+  --accent-label: rgba(255,255,255,.80);
+  --accent-border: transparent;
+
+  --r-card: 20px;
+  --r-control: 13px;
+  --r-chip: 9px;
 }
 
 /* ---------- ТЁМНАЯ ТЕМА ---------- */
 :root[data-theme="dark"] {
-  --ink: #F2F2F5;
-  --ink-soft: #24242E;
-  --violet: #8B7CF6;
-  --violet-soft: #241F3D;
-  --coral: #8B7CF6;
-  --coral-soft: #241F3D;
-  --muted: #9A9AA6;
-  --muted-2: #6B6B77;
-  --bg: #0E0E12;
-  --paper: #16161C;
-  --line: #262630;
-  --accent-bg: #1C1C25;
-  --accent-fg: #FFFFFF;
-  --accent-label: rgba(255,255,255,.62);
-  --accent-border: transparent;
-  --green: #3DD9A0;
-  --green-soft: #10261F;
-  --amber: #E8B04B;
-  --amber-soft: #2A2314;
-  --red: #FF6B5C;
-  --red-soft: #2E1A18;
-  --red-border: #462623;
-  --surface-dark: #14141A;
+  --ink: #F4F2FF;
+  --ink-soft: #221B3C;
+  --violet: #8B7CFF;
+  --violet-soft: rgba(124,92,255,.18);
+  --coral: #C061FF;
+  --coral-soft: rgba(192,97,255,.18);
+  --green: #3DE0D2;
+  --green-soft: rgba(61,224,210,.14);
+  --amber: #BDA8FF;
+  --amber-soft: rgba(124,92,255,.16);
+  --red: #FF7A90;
+  --red-soft: rgba(255,92,120,.16);
+  --red-border: rgba(255,120,150,.34);
 
-  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -8px rgba(0,0,0,.6);
-  --shadow-hi: 0 2px 6px rgba(0,0,0,.5), 0 24px 50px -14px rgba(0,0,0,.75);
-  --accent-glow: rgba(139,124,246,.14);
-  --glass: rgba(22,22,28,.66);
+  --muted: #A79FD0;
+  --muted-2: #6F6795;
+  --bg: #08060F;
+  --paper: rgba(255,255,255,.05);
+  --line: rgba(255,255,255,.10);
+  --surface-dark: #0C0917;
+
+  --shadow: 0 20px 50px -26px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.06);
+  --shadow-hi: 0 28px 64px -24px rgba(0,0,0,1), inset 0 1px 0 rgba(255,255,255,.10);
+  --accent-glow: rgba(255,255,255,.13);
+  --glass: rgba(14,12,26,.62);
+
+  --accent-bg: linear-gradient(145deg, rgba(124,92,255,.32), rgba(255,92,168,.17) 55%, rgba(61,224,210,.13));
+  --accent-fg: #FFFFFF;
+  --accent-label: rgba(255,255,255,.82);
+  --accent-border: rgba(255,255,255,.16);
 }
 
 * { box-sizing: border-box; }
@@ -100,25 +104,28 @@ body {
   font-feature-settings: "tnum" 1;
 }
 
-/* ---------- ФОНОВЫЕ СЛОИ: свечение и зерно ---------- */
-.aurora { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-.aurora span { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .42; }
-.aurora span:nth-child(1) {
-  width: 540px; height: 540px; left: -140px; top: -180px;
-  background: radial-gradient(circle, rgba(110,90,230,.45), transparent 70%);
+/* ---------- ЖИВОЙ ФОН: цветные пятна медленно плывут и смешиваются ---------- */
+.aurora { position: fixed; inset: -20%; z-index: 0; pointer-events: none; filter: blur(90px); opacity: .55; }
+.aurora span {
+  position: absolute; display: block; border-radius: 50%; mix-blend-mode: screen;
+  animation: mesh-drift 24s ease-in-out infinite;
 }
-.aurora span:nth-child(2) {
-  width: 460px; height: 460px; right: -140px; top: 40px;
-  background: radial-gradient(circle, rgba(60,170,200,.28), transparent 70%);
+.aurora span:nth-child(1) { width: 46vw; height: 46vw; left: 2%;  top: 0%;  background: radial-gradient(circle, var(--v1), transparent 62%); }
+.aurora span:nth-child(2) { width: 40vw; height: 40vw; right: 4%; top: 6%;  background: radial-gradient(circle, var(--v3), transparent 62%); animation-delay: -8s; }
+.aurora span:nth-child(3) { width: 38vw; height: 38vw; left: 30%; top: 36%; background: radial-gradient(circle, var(--aqua), transparent 62%); animation-delay: -15s; }
+[data-theme="dark"] .aurora { opacity: .85; }
+@keyframes mesh-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(6%, -5%) scale(1.12); }
+  66% { transform: translate(-5%, 6%) scale(.94); }
 }
-[data-theme="dark"] .aurora span { opacity: .72; }
 
-/* Плёночная фактура: снимает «пластиковость» плоской заливки */
+/* Плёночная фактура */
 .grain {
-  position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: .26; mix-blend-mode: overlay;
+  position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: .30; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
 }
-[data-theme="dark"] .grain { opacity: .40; }
+[data-theme="dark"] .grain { opacity: .42; }
 
 .app, .authScreen { position: relative; z-index: 2; }
 
@@ -839,3 +846,102 @@ button, input, select, textarea { font-family: inherit; }
 .tile__value--alert { color: var(--red); }
 
 @media (prefers-reduced-motion: reduce) { .heroBreak__seg { transition: none; } }
+
+/* ============ ВАУ-СЛОЙ: стекло, свечение, градиенты ============ */
+
+/* Поверхности становятся стеклянными — сквозь них виден движущийся фон */
+.tile, .card, .row, .ctRow, .calendarCard, .progressCard, .modal__panel, .empty, .firstRun {
+  background: var(--paper);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border-color: var(--line);
+}
+.tile, .card, .row, .ctRow, .calendarCard, .progressCard, .firstRun { box-shadow: var(--shadow); }
+
+/* Строки отзываются на курсор — уезжают вправо и подсвечиваются */
+.row:hover, .ctRow:hover {
+  transform: translateX(5px);
+  border-color: color-mix(in srgb, var(--coral) 55%, transparent);
+  box-shadow: 0 16px 38px -20px color-mix(in srgb, var(--coral) 80%, transparent);
+}
+
+/* Главная плитка: градиент, светящееся число и дышащее облако света */
+.tile--hero { background: var(--accent-bg); }
+.tile--hero .tile__value {
+  background: linear-gradient(100deg, #fff 10%, #F3E6FF 45%, #C9FFF7 95%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 6px 26px rgba(160,120,255,.45));
+}
+.hero-halo {
+  position: absolute; left: -10%; top: 22%; width: 70%; height: 62%; border-radius: 50%; z-index: 0;
+  background: radial-gradient(circle, rgba(255,255,255,.42), transparent 66%);
+  filter: blur(40px); animation: hero-breathe 6.5s ease-in-out infinite; pointer-events: none;
+}
+[data-theme="dark"] .hero-halo { background: radial-gradient(circle, rgba(160,110,255,.55), transparent 66%); }
+@keyframes hero-breathe {
+  0%, 100% { transform: scale(1); opacity: .5; }
+  50% { transform: scale(1.16); opacity: .85; }
+}
+.tile--hero .tile__label { text-shadow: 0 1px 10px rgba(0,0,0,.18); }
+
+/* Инициалы клиентов — одним цветом, в тон главной плитки */
+.row__avatar, .ctRow .row__avatar {
+  background: linear-gradient(140deg, var(--v1), var(--v2)) !important;
+  color: #fff !important;
+  box-shadow: 0 6px 18px -8px rgba(124,92,255,.9);
+}
+
+/* Статусы — светящиеся капсулы */
+.pill {
+  font-size: 11.5px; font-weight: 700; white-space: nowrap;
+  padding: 6px 13px; border-radius: 100px; border: 1px solid transparent;
+}
+.pill--paid { background: var(--green-soft); color: var(--green); border-color: color-mix(in srgb, var(--green) 35%, transparent); }
+.pill--pending { background: var(--violet-soft); color: var(--violet); border-color: color-mix(in srgb, var(--violet) 38%, transparent); }
+.pill--overdue {
+  background: var(--red-soft); color: var(--red); border-color: var(--red-border);
+  animation: pill-glow 2.4s ease-in-out infinite;
+}
+@keyframes pill-glow {
+  0%, 100% { box-shadow: 0 0 16px color-mix(in srgb, var(--red) 22%, transparent); }
+  50% { box-shadow: 0 0 30px color-mix(in srgb, var(--red) 50%, transparent); }
+}
+
+/* Главное действие — градиентная кнопка */
+.btn--dark {
+  background: linear-gradient(135deg, var(--v1), var(--v2));
+  color: #fff; border: none;
+  box-shadow: 0 10px 26px -12px rgba(124,92,255,.95);
+}
+.btn--dark:hover { background: linear-gradient(135deg, var(--v2), var(--v3)); }
+
+/* Логотип в той же гамме */
+.brand__mark { background: linear-gradient(135deg, var(--v1), var(--v3)) !important; box-shadow: 0 8px 22px -10px rgba(124,92,255,.9); }
+
+/* Сайдбар — тёмное стекло */
+.sidebar { background: var(--surface-dark); backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur); }
+.navlink.is-active { background: linear-gradient(135deg, rgba(124,92,255,.30), rgba(255,92,168,.18)); color: #fff; }
+.navlink.is-active svg { color: #fff; }
+
+/* Полоса «Собрано за» — в той же гамме */
+.progressCard__fill { background: linear-gradient(90deg, var(--v1), var(--v2), var(--v3)); }
+
+/* Чипы в календаре */
+.chip--paid { background: var(--green-soft); color: var(--green); }
+.chip--pending { background: var(--violet-soft); color: var(--violet); }
+.chip--overdue { background: var(--red-soft); color: var(--red); }
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora span, .hero-halo, .pill--overdue { animation: none; }
+  .row:hover, .ctRow:hover { transform: none; }
+}
+
+/* Полоса налога — мягкий отлив, а не второй кричащий градиент рядом с главной плиткой */
+.forecastBand {
+  background: linear-gradient(140deg, rgba(124,92,255,.16), rgba(255,92,168,.10));
+  color: var(--ink); border: 1px solid var(--line);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+}
+.forecastBand__label { color: var(--muted); }
+[data-theme="dark"] .forecastBand { background: var(--accent-bg); color: #fff; border-color: var(--accent-border); }
+[data-theme="dark"] .forecastBand__label { color: var(--accent-label); }
