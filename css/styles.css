@@ -254,9 +254,9 @@ button, input, select, textarea { font-family: inherit; }
   display: inline-flex; align-items: center; gap: 8px;
   white-space: nowrap;
 }
-/* Главное действие — акцентным цветом, а не чёрным: один акцент на весь интерфейс */
-.btn--dark { background: var(--violet); color: #fff; box-shadow: var(--shadow); }
-.btn--dark:hover { filter: brightness(1.08); }
+/* Главное действие: приглушённый акцент — заметно, но не кричит */
+.btn--dark { background: color-mix(in srgb, var(--violet) 76%, var(--ink)); color: #fff; box-shadow: var(--shadow); }
+.btn--dark:hover { background: var(--violet); }
 .btn--outline { background: var(--paper); color: var(--ink); border: 1px solid var(--line); }
 .btn--outline:hover { border-color: var(--violet); color: var(--violet); }
 .btn--ghost { background: transparent; color: var(--muted); }
@@ -315,8 +315,7 @@ button, input, select, textarea { font-family: inherit; }
 .tile--hero .tile__label { font-size: 13px; }
 .tile--hero .tile__value { font-size: 38px; margin-top: 8px; letter-spacing: -1.2px; }
 /* Без графика внизу плитка выглядела пустой — тогда прижимаем содержимое к центру */
-.tile--hero:not(:has(.hero-spark)) { justify-content: center; gap: 10px; }
-.tile--hero:not(:has(.hero-spark)) .tile__icon { position: absolute; top: 18px; left: 18px; }
+.tile--hero { justify-content: center; gap: 16px; }
 
 /* Живая кайма: по контуру главной плитки медленно идёт световая нить */
 .tile--hero::after {
@@ -341,7 +340,7 @@ button, input, select, textarea { font-family: inherit; }
   border-color: var(--red-border);
   flex-direction: row; align-items: center; gap: 16px;
 }
-.tile--wide .tile__value { font-size: 24px; color: var(--red); }
+.tile--wide .tile__value { font-size: 22px; }
 .tile--wide .tile__text { display: flex; flex-direction: column; gap: 4px; }
 
 .tile.skeleton .tile__value { visibility: hidden; }
@@ -410,11 +409,11 @@ button, input, select, textarea { font-family: inherit; }
   content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
   width: 7px; height: 7px; border-radius: 50%;
 }
-.pill--pending { color: var(--amber); }
+.pill--pending { color: var(--muted); }
 .pill--pending::before { background: var(--amber); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 16%, transparent); }
-.pill--paid { color: var(--green); }
+.pill--paid { color: var(--muted); }
 .pill--paid::before { background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 16%, transparent); }
-.pill--overdue { color: var(--red); }
+.pill--overdue { color: var(--red); font-weight: 700; }
 /* Пульс у просрочки — единственное, что шевелится само, и именно там, где нужно внимание */
 .pill--overdue::before {
   background: var(--red);
@@ -462,10 +461,10 @@ button, input, select, textarea { font-family: inherit; }
 }
 .progressCard__row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
 .progressCard__label { font-size: 13.5px; font-weight: 700; color: var(--ink); }
-.progressCard__pct { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: var(--violet); }
-.progressCard__track { height: 10px; border-radius: 100px; background: var(--violet-soft); overflow: hidden; }
+.progressCard__pct { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: var(--ink); }
+.progressCard__track { height: 8px; border-radius: 100px; background: var(--violet-soft); overflow: hidden; }
 .progressCard__fill {
-  height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--violet), var(--coral));
+  height: 100%; border-radius: 100px; background: color-mix(in srgb, var(--violet) 55%, var(--paper));
   transition: width .6s cubic-bezier(.2,.7,.3,1);
 }
 .progressCard__sub { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
@@ -837,3 +836,27 @@ button, input, select, textarea { font-family: inherit; }
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: none; }
 }
+
+/* ---------- СОСТАВ МЕСЯЦА В ГЛАВНОЙ ПЛИТКЕ ---------- */
+.heroBreak { position: relative; z-index: 2; display: flex; flex-direction: column; gap: 9px; }
+.heroBreak__bar {
+  display: flex; gap: 3px; height: 7px; border-radius: 100px; overflow: hidden;
+  background: color-mix(in srgb, var(--accent-fg) 10%, transparent);
+}
+.heroBreak__seg { display: block; height: 100%; border-radius: 100px; transition: width .8s cubic-bezier(.2,.8,.3,1); }
+/* Оттенки одного цвета: красный в интерфейсе закреплён только за просрочкой */
+.heroBreak__seg--paid { background: var(--violet); }
+.heroBreak__seg--pending { background: color-mix(in srgb, var(--violet) 34%, transparent); }
+.heroBreak__seg--overdue { background: var(--red); }
+
+.heroBreak__legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 11.5px; font-weight: 600; }
+.heroBreak__item { color: var(--accent-label); display: inline-flex; align-items: center; gap: 6px; }
+.heroBreak__item::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.heroBreak__item--paid::before { background: var(--violet); }
+.heroBreak__item--pending::before { background: color-mix(in srgb, var(--violet) 40%, transparent); }
+.heroBreak__item--overdue::before { background: var(--red); }
+
+/* Красный — только когда просрочка действительно есть; ноль остаётся обычным */
+.tile__value--alert { color: var(--red); }
+
+@media (prefers-reduced-motion: reduce) { .heroBreak__seg { transition: none; } }

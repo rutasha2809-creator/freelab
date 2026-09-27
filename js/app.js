@@ -454,15 +454,23 @@ function isInMonth(iso, year, month) {
 function computeStats() {
   const { year, month } = dashboardMonth();
   let expected = 0, received = 0, pending = 0, overdue = 0;
+  // Состав выбранного месяца — для полосы внутри главной плитки
+  let monthPaid = 0, monthPending = 0, monthOverdue = 0;
   for (const p of state.payments) {
     const status = deriveStatus(p);
-    if (isInMonth(p.planDate, year, month)) expected += Number(p.amount) || 0;
-    if (status === 'paid' && isInMonth(p.factDate, year, month)) received += Number(p.amount) || 0;
-    if (status === 'pending' && isInMonth(p.planDate, year, month)) pending += Number(p.amount) || 0;
+    const amount = Number(p.amount) || 0;
+    if (isInMonth(p.planDate, year, month)) {
+      expected += amount;
+      if (status === 'paid') monthPaid += amount;
+      else if (status === 'overdue') monthOverdue += amount;
+      else monthPending += amount;
+    }
+    if (status === 'paid' && isInMonth(p.factDate, year, month)) received += amount;
+    if (status === 'pending' && isInMonth(p.planDate, year, month)) pending += amount;
     // Просрочку не привязываем к месяцу: долг остаётся долгом, в какой месяц ни листай
-    if (status === 'overdue') overdue += Number(p.amount) || 0;
+    if (status === 'overdue') overdue += amount;
   }
-  return { expected, received, pending, overdue };
+  return { expected, received, pending, overdue, monthPaid, monthPending, monthOverdue };
 }
 
 function computeTaxForecast() {
@@ -518,6 +526,30 @@ function overallSparklineSVG() {
   `;
 }
 
+// Состав месяца одной полосой: сколько уже получено, сколько ждём, сколько просрочено.
+// Оттенки одного цвета — красный остаётся только за просрочкой
+function heroBreakdownHTML(s) {
+  const total = s.expected || 0;
+  if (!total) return '';
+  const pct = v => (v / total) * 100;
+  const parts = [
+    { key: 'paid', label: 'Получено', value: s.monthPaid },
+    { key: 'pending', label: 'Ожидается', value: s.monthPending },
+    { key: 'overdue', label: 'Просрочено', value: s.monthOverdue },
+  ].filter(p => p.value > 0);
+
+  return `
+    <div class="heroBreak">
+      <div class="heroBreak__bar">
+        ${parts.map(p => `<span class="heroBreak__seg heroBreak__seg--${p.key}" style="width:0%" data-w="${pct(p.value).toFixed(2)}"></span>`).join('')}
+      </div>
+      <div class="heroBreak__legend">
+        ${parts.map(p => `<span class="heroBreak__item heroBreak__item--${p.key}">${p.label} ${formatMoney(p.value)}</span>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderStats() {
   const s = computeStats();
   const { month, offset } = dashboardMonth();
@@ -533,14 +565,11 @@ function renderStats() {
   const labelOverdue = 'Просрочено всего';
   el.innerHTML = `
     <div class="tile tile--hero tile--dark">
-      <div class="hero-blob"></div>
-      <div class="tile__icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3 5 1.1 5 3-2.2 3.5-5 3.5-5-1.6-5-3.5" stroke-width="2.1" stroke-linecap="round"/></svg>
-      </div>
       <div>
         <div class="tile__label">${labelExpected}</div>
         <div class="tile__value" data-animate-key="expected" data-animate-value="${s.expected}">0 ₽</div>
       </div>
+      ${heroBreakdownHTML(s)}
       ${spark ? `<svg class="hero-spark" viewBox="0 0 260 46" preserveAspectRatio="none">${spark}</svg>` : ''}
     </div>
     <div class="tile tile--small">
@@ -567,12 +596,16 @@ function renderStats() {
       </div>
       <div class="tile__text">
         <div class="tile__label" style="color:var(--muted)">${labelOverdue}</div>
-        <div class="tile__value" data-animate-key="overdue" data-animate-value="${s.overdue}">0 ₽</div>
+        <div class="tile__value${s.overdue > 0 ? ' tile__value--alert' : ''}" data-animate-key="overdue" data-animate-value="${s.overdue}">0 ₽</div>
       </div>
     </div>
   `;
   animateValuesIn(el);
   staggerReveal(el);
+  // Полоса состава месяца разъезжается после отрисовки
+  requestAnimationFrame(() => {
+    el.querySelectorAll('.heroBreak__seg').forEach(seg => { seg.style.width = seg.dataset.w + '%'; });
+  });
 }
 
 function renderTaxForecast() {
@@ -592,11 +625,11 @@ function renderTaxForecast() {
     <div class="forecastBand">
       <div class="forecastBand__item">
         <div class="forecastBand__label">Налог НПД за ${MONTHS_ACC[dashboardMonth().month]}</div>
-        <div class="forecastBand__value" style="color:var(--amber);" data-animate-key="taxTax" data-animate-value="${f.tax}">0 ₽</div>
+        <div class="forecastBand__value" data-animate-key="taxTax" data-animate-value="${f.tax}">0 ₽</div>
       </div>
       <div class="forecastBand__item">
         <div class="forecastBand__label">На руки</div>
-        <div class="forecastBand__value" style="color:var(--green);" data-animate-key="taxNet" data-animate-value="${net}">0 ₽</div>
+        <div class="forecastBand__value" data-animate-key="taxNet" data-animate-value="${net}">0 ₽</div>
       </div>
     </div>
   `;
@@ -857,16 +890,9 @@ function initials(name) {
   return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
 
-const AVATAR_PALETTE = [
-  { bg: '#EFE6FF', fg: '#6C3CE9' },
-  { bg: '#FFE8DE', fg: '#FF7A50' },
-  { bg: '#E4F8EE', fg: '#1FAB6B' },
-  { bg: '#FFF3DC', fg: '#B87700' },
-];
-function avatarColor(id) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
-  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+// Инициалы клиентов — без цвета: в интерфейсе цветом обозначается только просрочка
+function avatarColor() {
+  return { bg: 'var(--violet-soft)', fg: 'var(--muted)' };
 }
 
 function statusPill(status) {
