@@ -33,6 +33,7 @@ h1, h2, h3, .display { font-family: 'Space Grotesk', sans-serif; }
 button, input, select, textarea { font-family: inherit; }
 
 .app { display: flex; min-height: 100vh; }
+.app[hidden], .authScreen[hidden] { display: none !important; }
 
 /* ---------- SIDEBAR ---------- */
 .sidebar {
