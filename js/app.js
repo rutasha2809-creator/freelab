@@ -162,6 +162,28 @@ function animateValuesIn(container) {
   });
 }
 
+// Прожектор: передаём координаты курсора в CSS, чтобы по карточке скользило пятно света.
+// Слушаем на документе один раз — карточки постоянно перерисовываются
+document.addEventListener('pointermove', e => {
+  const card = e.target.closest && e.target.closest('.tile');
+  if (!card) return;
+  const r = card.getBoundingClientRect();
+  card.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+  card.style.setProperty('--my', (e.clientY - r.top) + 'px');
+}, { passive: true });
+
+// Появление ступеньками: блоки дашборда всплывают по очереди, а не возникают разом
+function staggerReveal(container) {
+  if (prefersReducedMotion || !container) return;
+  const items = container.querySelectorAll(':scope > *');
+  items.forEach((el, i) => {
+    el.style.animation = 'none';
+    // перезапуск анимации после перерисовки
+    void el.offsetWidth;
+    el.style.animation = `tile-rise .6s cubic-bezier(.2,.8,.3,1) ${i * 60}ms both`;
+  });
+}
+
 // Небольшой всплеск конфетти в точке клика — обратная связь при отметке платежа оплаченным
 function celebrateAt(x, y) {
   if (prefersReducedMotion) return;
@@ -483,7 +505,17 @@ function overallSparklineSVG() {
     h - pad - (v / max) * (h - pad * 2),
   ]);
   const path = points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
-  return `<path d="${path}" fill="none" stroke="#FF7A50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+  // Линия с растворяющейся заливкой под ней — мягче, чем голый штрих
+  return `
+    <defs>
+      <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--violet)" stop-opacity="0.34"/>
+        <stop offset="100%" stop-color="var(--violet)" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${path} L${w},${h} L0,${h} Z" fill="url(#sparkFill)"/>
+    <path d="${path}" fill="none" stroke="var(--violet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  `;
 }
 
 function renderStats() {
@@ -503,7 +535,7 @@ function renderStats() {
     <div class="tile tile--hero tile--dark">
       <div class="hero-blob"></div>
       <div class="tile__icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3 5 1.1 5 3-2.2 3.5-5 3.5-5-1.6-5-3.5" stroke="#1B1626" stroke-width="2.1" stroke-linecap="round"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3 5 1.1 5 3-2.2 3.5-5 3.5-5-1.6-5-3.5" stroke-width="2.1" stroke-linecap="round"/></svg>
       </div>
       <div>
         <div class="tile__label">${labelExpected}</div>
@@ -513,7 +545,7 @@ function renderStats() {
     </div>
     <div class="tile tile--small">
       <div class="tile__icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#1FAB6B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <div>
         <div class="tile__label" style="color:var(--muted)">${labelReceived}</div>
@@ -522,7 +554,7 @@ function renderStats() {
     </div>
     <div class="tile tile--small is-pending">
       <div class="tile__icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#B87700" stroke-width="2.1"/><path d="M12 7.5V12l3 2" stroke="#B87700" stroke-width="2.1" stroke-linecap="round"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke-width="2"/><path d="M12 7.5V12l3 2" stroke-width="2" stroke-linecap="round"/></svg>
       </div>
       <div>
         <div class="tile__label" style="color:var(--muted)">${labelPending}</div>
@@ -531,7 +563,7 @@ function renderStats() {
     </div>
     <div class="tile tile--wide">
       <div class="tile__icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8v5" stroke="#E8493C" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.1" fill="#E8493C"/><circle cx="12" cy="12" r="9" stroke="#E8493C" stroke-width="2.1"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8v5" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="9" stroke-width="2"/></svg>
       </div>
       <div class="tile__text">
         <div class="tile__label" style="color:var(--muted)">${labelOverdue}</div>
@@ -540,6 +572,7 @@ function renderStats() {
     </div>
   `;
   animateValuesIn(el);
+  staggerReveal(el);
 }
 
 function renderTaxForecast() {
@@ -552,19 +585,18 @@ function renderTaxForecast() {
     return;
   }
   const f = computeTaxForecast();
+  // Доходы больше не делим на договорные и прочие: налог считается по карточкам
+  // клиентов с договором, а «на руки» — это весь доход месяца за вычетом налога
+  const net = computeStats().expected - f.tax;
   el.innerHTML = `
     <div class="forecastBand">
       <div class="forecastBand__item">
-        <div class="forecastBand__label">Доход по договору за ${MONTHS_ACC[dashboardMonth().month]}</div>
-        <div class="forecastBand__value" data-animate-key="taxGross" data-animate-value="${f.gross}">0 ₽</div>
-      </div>
-      <div class="forecastBand__item">
-        <div class="forecastBand__label">Налог НПД</div>
-        <div class="forecastBand__value" style="color:#FF9E7A;" data-animate-key="taxTax" data-animate-value="${f.tax}">0 ₽</div>
+        <div class="forecastBand__label">Налог НПД за ${MONTHS_ACC[dashboardMonth().month]}</div>
+        <div class="forecastBand__value" style="color:var(--amber);" data-animate-key="taxTax" data-animate-value="${f.tax}">0 ₽</div>
       </div>
       <div class="forecastBand__item">
         <div class="forecastBand__label">На руки</div>
-        <div class="forecastBand__value" style="color:#7CE0AE;" data-animate-key="taxNet" data-animate-value="${f.net}">0 ₽</div>
+        <div class="forecastBand__value" style="color:var(--green);" data-animate-key="taxNet" data-animate-value="${net}">0 ₽</div>
       </div>
     </div>
   `;
@@ -1716,7 +1748,7 @@ function applyUserIdentity(session) {
   const hour = new Date().getHours();
   const greet = hour < 6 ? 'Доброй ночи' : hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер';
 
-  document.getElementById('greeting').textContent = name ? `${greet}, ${name} 👋` : `${greet} 👋`;
+  document.getElementById('greeting').textContent = name ? `${greet}, ${name}` : greet;
   document.getElementById('todayLabel').textContent = `${todayLabel()} — вот как идут дела с клиентами`;
 
   const nameEl = document.querySelector('.sidebar__name');
