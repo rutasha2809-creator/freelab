@@ -200,9 +200,12 @@ initTheme();
 function renderSkeleton() {
   const statsEl = document.getElementById('stats');
   if (statsEl) {
-    statsEl.innerHTML = Array.from({ length: 4 }).map(() => `
-      <div class="stat skeleton"><div class="stat__value">0 ₽</div></div>
-    `).join('');
+    statsEl.innerHTML = `
+      <div class="tile tile--hero skeleton"><div class="tile__value">0 ₽</div></div>
+      <div class="tile tile--small skeleton"><div class="tile__value">0 ₽</div></div>
+      <div class="tile tile--small skeleton"><div class="tile__value">0 ₽</div></div>
+      <div class="tile tile--wide skeleton"><div class="tile__value">0 ₽</div></div>
+    `;
   }
   const listRecurring = document.getElementById('listRecurring');
   if (listRecurring) {
@@ -428,38 +431,75 @@ function computeTaxForecast() {
 
 // ---------- Рендер: статистика ----------
 
+function overallSparklineSVG() {
+  const now = new Date();
+  const keys = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  const byKey = Object.fromEntries(keys.map(k => [k, 0]));
+  state.payments.forEach(p => {
+    if (!p.factDate) return;
+    const key = monthGroupKey(p.factDate);
+    if (key in byKey) byKey[key] += Number(p.amount) || 0;
+  });
+  const values = keys.map(k => byKey[k]);
+  if (values.filter(v => v > 0).length < 2) return '';
+
+  const w = 260, h = 46, pad = 3;
+  const max = Math.max(...values, 1);
+  const stepX = (w - pad * 2) / (values.length - 1);
+  const points = values.map((v, i) => [
+    pad + i * stepX,
+    h - pad - (v / max) * (h - pad * 2),
+  ]);
+  const path = points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  return `<path d="${path}" fill="none" stroke="#FF7A50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+
 function renderStats() {
   const s = computeStats();
   const el = document.getElementById('stats');
+  const spark = overallSparklineSVG();
   el.innerHTML = `
-    <div class="stat stat--dark">
-      <div class="stat__blob"></div>
-      <div class="stat__icon" style="background:#FF7A50;">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3 5 1.1 5 3-2.2 3.5-5 3.5-5-1.6-5-3.5" stroke="#1B1626" stroke-width="2.1" stroke-linecap="round"/></svg>
+    <div class="tile tile--hero">
+      <div class="hero-blob"></div>
+      <div class="tile__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5.5c0-1.9-2.2-3.5-5-3.5s-5 1.6-5 3.5 2.2 3 5 3 5 1.1 5 3-2.2 3.5-5 3.5-5-1.6-5-3.5" stroke="#1B1626" stroke-width="2.1" stroke-linecap="round"/></svg>
       </div>
-      <div class="stat__label">Ожидается в этом месяце</div>
-      <div class="stat__value" data-animate-value="${s.expected}">0 ₽</div>
+      <div>
+        <div class="tile__label">Ожидается в этом месяце</div>
+        <div class="tile__value" data-animate-value="${s.expected}">0 ₽</div>
+      </div>
+      ${spark ? `<svg class="hero-spark" viewBox="0 0 260 46" preserveAspectRatio="none">${spark}</svg>` : ''}
     </div>
-    <div class="stat">
-      <div class="stat__icon" style="background:#E4F8EE;">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#1FAB6B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="tile tile--small">
+      <div class="tile__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#1FAB6B" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
-      <div class="stat__label">Уже получено</div>
-      <div class="stat__value" data-animate-value="${s.received}">0 ₽</div>
+      <div>
+        <div class="tile__label" style="color:var(--muted)">Уже получено</div>
+        <div class="tile__value" data-animate-value="${s.received}">0 ₽</div>
+      </div>
     </div>
-    <div class="stat">
-      <div class="stat__icon" style="background:#FFF3DC;">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#F0A020" stroke-width="2.1"/><path d="M12 7.5V12l3 2" stroke="#F0A020" stroke-width="2.1" stroke-linecap="round"/></svg>
+    <div class="tile tile--small is-pending">
+      <div class="tile__icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="#B87700" stroke-width="2.1"/><path d="M12 7.5V12l3 2" stroke="#B87700" stroke-width="2.1" stroke-linecap="round"/></svg>
       </div>
-      <div class="stat__label">В ожидании оплаты</div>
-      <div class="stat__value" data-animate-value="${s.pending}">0 ₽</div>
+      <div>
+        <div class="tile__label" style="color:var(--muted)">В ожидании оплаты</div>
+        <div class="tile__value" data-animate-value="${s.pending}">0 ₽</div>
+      </div>
     </div>
-    <div class="stat stat--danger">
-      <div class="stat__icon" style="background:#FCE4E0;">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 8v5" stroke="#E8493C" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.1" fill="#E8493C"/><circle cx="12" cy="12" r="9" stroke="#E8493C" stroke-width="2.1"/></svg>
+    <div class="tile tile--wide">
+      <div class="tile__icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8v5" stroke="#E8493C" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.1" fill="#E8493C"/><circle cx="12" cy="12" r="9" stroke="#E8493C" stroke-width="2.1"/></svg>
       </div>
-      <div class="stat__label">Просрочено</div>
-      <div class="stat__value" data-animate-value="${s.overdue}">0 ₽</div>
+      <div class="tile__text">
+        <div class="tile__label" style="color:var(--muted)">Просрочено</div>
+        <div class="tile__value" data-animate-value="${s.overdue}">0 ₽</div>
+      </div>
     </div>
   `;
   animateValuesIn(el);
