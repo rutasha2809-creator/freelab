@@ -1965,18 +1965,40 @@ function setAuthMode(mode) {
   authPasswordInput.required = mode !== 'forgot';
   authToggleBtn.hidden = mode === 'forgot';
   authForgotLink.hidden = mode === 'signup';
+  const cardTitle = document.getElementById('authCardTitle');
   if (mode === 'signup') {
+    if (cardTitle) cardTitle.textContent = 'Регистрация';
     authSubmitBtn.textContent = 'Зарегистрироваться';
     authToggleBtn.textContent = 'Уже есть аккаунт? Войти';
   } else if (mode === 'forgot') {
+    if (cardTitle) cardTitle.textContent = 'Сброс пароля';
     authSubmitBtn.textContent = 'Отправить ссылку для сброса';
     authForgotLink.textContent = 'Назад ко входу';
   } else {
+    if (cardTitle) cardTitle.textContent = 'Вход';
     authSubmitBtn.textContent = 'Войти';
     authToggleBtn.textContent = 'Нет аккаунта? Зарегистрироваться';
     authForgotLink.textContent = 'Забыли пароль?';
   }
 }
+
+// Счётчик в демонстрации на экране входа: цикл совпадает с анимацией плиток
+(function runAuthDemo() {
+  const el = document.getElementById('demoValue');
+  if (!el || prefersReducedMotion) { if (el) el.textContent = formatMoney(48500); return; }
+  const TO = 48500, CYCLE = 7000, GROW = 2600, START = 400;
+  function cycle() {
+    const t0 = performance.now();
+    function tick(now) {
+      const t = Math.min(1, (now - t0) / GROW);
+      el.textContent = formatMoney(TO * (1 - Math.pow(1 - t, 3)));
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+    setTimeout(() => { el.textContent = formatMoney(0); }, CYCLE - 500);
+  }
+  setTimeout(() => { cycle(); setInterval(cycle, CYCLE); }, START);
+})();
 
 authToggleBtn.addEventListener('click', () => setAuthMode(authMode === 'signin' ? 'signup' : 'signin'));
 authForgotLink.addEventListener('click', () => setAuthMode(authMode === 'forgot' ? 'signin' : 'forgot'));

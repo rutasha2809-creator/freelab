@@ -15,7 +15,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=31">
+<link rel="stylesheet" href="css/styles.css?v=32">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -26,13 +26,60 @@
 
 <!-- AUTH SCREEN -->
 <div class="authScreen" id="authScreen">
-  <div class="authCard">
-    <div class="brand" style="justify-content:center; margin-bottom:24px;">
-      <div class="brand__mark">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 17L10 5L14 13L20 7" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <div class="authLayout">
+
+    <!-- Левая часть: рассказ о приложении с живой инфографикой -->
+    <div class="authPitch">
+      <div class="brand">
+        <div class="brand__mark">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 17L10 5L14 13L20 7" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="brand__name">Freelance</div>
       </div>
-      <div class="brand__name">Freelance</div>
+
+      <h1 class="authPitch__title">Деньги от заказчиков —<br>под контролем</h1>
+      <p class="authPitch__text">
+        Укажите, сколько и когда вам платят. Календарь поступлений приложение построит само,
+        напомнит о просрочке и посчитает налог.
+      </p>
+
+      <!-- Мини-демонстрация: цифра растёт, платежи появляются в календаре -->
+      <div class="demo" aria-hidden="true">
+        <div class="demo__top">
+          <div>
+            <div class="demo__label">Ожидается в этом месяце</div>
+            <div class="demo__value" id="demoValue">0 ₽</div>
+          </div>
+          <div class="demo__pill">+3 поступления</div>
+        </div>
+
+        <div class="demo__grid">
+          <span class="demo__day"></span> <span class="demo__day"></span> <span class="demo__day demo__day--pay demo__day--1"><i></i></span> <span class="demo__day"></span> <span class="demo__day"></span> <span class="demo__day"></span>
+          <span class="demo__day"></span> <span class="demo__day"></span> <span class="demo__day"></span> <span class="demo__day"></span> <span class="demo__day demo__day--pay demo__day--2"><i></i></span> <span class="demo__day"></span>
+          <span class="demo__day"></span> <span class="demo__day"></span> <span class="demo__day"></span> <span class="demo__day demo__day--pay demo__day--3"><i></i></span> <span class="demo__day"></span> <span class="demo__day"></span>
+        </div>
+
+        <div class="demo__bar"><span class="demo__barFill"></span></div>
+      </div>
+
+      <ul class="authFeatures">
+        <li>
+          <span class="authFeatures__ic"><svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="15" rx="3" stroke="currentColor" stroke-width="1.9"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span>
+          Календарь поступлений строится сам
+        </li>
+        <li>
+          <span class="authFeatures__ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.6" stroke="currentColor" stroke-width="1.9"/><path d="M12 7.4V12l3.1 2.1" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span>
+          Просрочка видна сразу
+        </li>
+        <li>
+          <span class="authFeatures__ic"><svg viewBox="0 0 24 24" fill="none"><path d="M8 16L16 8" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="9" cy="9" r="2.1" stroke="currentColor" stroke-width="1.7"/><circle cx="15" cy="15" r="2.1" stroke="currentColor" stroke-width="1.7"/></svg></span>
+          Налог НПД считается автоматически
+        </li>
+      </ul>
     </div>
+
+  <div class="authCard">
+    <div class="authCard__title" id="authCardTitle">Вход</div>
     <form id="authForm">
       <label class="field">
         <span>Email</span>
@@ -65,6 +112,8 @@
     </form>
     <button type="button" class="authToggle" id="authForgotLink">Забыли пароль?</button>
     <button type="button" class="authToggle" id="authToggleMode">Нет аккаунта? Зарегистрироваться</button>
+  </div>
+
   </div>
 </div>
 
@@ -485,6 +534,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=31"></script>
+<script src="js/app.js?v=32"></script>
 </body>
 </html>

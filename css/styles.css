@@ -1136,3 +1136,98 @@ button, input, select, textarea { font-family: inherit; }
   .fab:hover { transform: none; }
   .fab:hover svg { transform: none; }
 }
+
+/* ============ ЭКРАН ВХОДА: рассказ слева, форма справа ============ */
+.authScreen { padding: 32px 24px; }
+.authLayout {
+  display: grid; grid-template-columns: minmax(0, 1.05fr) 380px;
+  gap: 56px; align-items: center; width: 100%; max-width: 1000px;
+}
+
+.authPitch { min-width: 0; }
+.authPitch .brand { margin-bottom: 28px; }
+.authPitch__title {
+  font-family: 'Space Grotesk', sans-serif; font-size: clamp(30px, 3.4vw, 42px);
+  font-weight: 700; line-height: 1.12; letter-spacing: -1.4px; margin: 0 0 14px;
+  background: linear-gradient(100deg, var(--ink) 20%, var(--v2) 78%, var(--aqua) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.authPitch__text {
+  margin: 0 0 26px; font-size: 14.5px; line-height: 1.6; color: var(--muted); max-width: 440px;
+}
+
+/* Мини-демонстрация приложения */
+.demo {
+  background: var(--paper); border: 1px solid var(--line); border-radius: var(--r-card);
+  padding: 18px; box-shadow: var(--shadow);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  max-width: 440px;
+}
+.demo__top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+.demo__label { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.demo__value {
+  font-family: 'Space Grotesk', sans-serif; font-size: 27px; font-weight: 700;
+  letter-spacing: -0.8px; margin-top: 3px; font-variant-numeric: tabular-nums;
+}
+.demo__pill {
+  font-size: 11px; font-weight: 700; padding: 5px 11px; border-radius: 100px;
+  background: var(--violet-soft); color: var(--violet); white-space: nowrap;
+  border: 1px solid color-mix(in srgb, var(--violet) 32%, transparent);
+}
+
+.demo__grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-bottom: 14px; }
+.demo__day { height: 26px; border-radius: 7px; background: var(--bg); border: 1px solid var(--line); position: relative; }
+.demo__day--pay i {
+  position: absolute; inset: 3px; border-radius: 5px; display: block;
+  background: linear-gradient(120deg, var(--v1), var(--v2));
+  transform: scale(.4); opacity: 0;
+  animation: demo-chip 7s cubic-bezier(.2,.8,.3,1) infinite;
+}
+.demo__day--1 i { animation-delay: .4s; }
+.demo__day--2 i { animation-delay: 1.0s; }
+.demo__day--3 i { animation-delay: 1.6s; }
+@keyframes demo-chip {
+  0%   { transform: scale(.4); opacity: 0; }
+  7%   { transform: scale(1.12); opacity: 1; }
+  11%  { transform: scale(1); opacity: 1; }
+  82%  { transform: scale(1); opacity: 1; }
+  90%, 100% { transform: scale(.4); opacity: 0; }
+}
+
+.demo__bar { height: 6px; border-radius: 100px; background: var(--violet-soft); overflow: hidden; }
+.demo__barFill {
+  display: block; height: 100%; width: 0; border-radius: 100px;
+  background: linear-gradient(90deg, var(--v1), var(--v2), var(--v3));
+  animation: demo-bar 7s cubic-bezier(.2,.8,.3,1) infinite;
+}
+@keyframes demo-bar {
+  0%, 8%  { width: 0; }
+  46%     { width: 72%; }
+  82%     { width: 72%; }
+  92%, 100% { width: 0; }
+}
+
+.authFeatures { list-style: none; margin: 26px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.authFeatures li { display: flex; align-items: center; gap: 11px; font-size: 13.5px; font-weight: 600; }
+.authFeatures__ic {
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px; display: grid; place-items: center;
+  background: var(--violet-soft); color: var(--violet);
+}
+.authFeatures__ic svg { width: 16px; height: 16px; }
+
+.authCard__title {
+  font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 18px;
+}
+
+@media (max-width: 900px) {
+  .authLayout { grid-template-columns: 1fr; gap: 30px; max-width: 420px; }
+  .authPitch__title { font-size: 27px; letter-spacing: -1px; }
+  .authPitch__text { font-size: 13.5px; margin-bottom: 20px; }
+  .demo, .authPitch__text { max-width: none; }
+  /* На телефоне список преимуществ уводим под форму по смыслу — он вторичен */
+  .authFeatures { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo__day--pay i { animation: none; opacity: 1; transform: none; }
+  .demo__barFill { animation: none; width: 72%; }
+}
