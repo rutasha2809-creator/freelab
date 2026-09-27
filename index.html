@@ -12,7 +12,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=11">
+<link rel="stylesheet" href="css/styles.css?v=12">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -129,17 +129,9 @@
 
       <div id="monthProgress"></div>
 
-      <div id="monthHeatmap" class="heatmapCard"></div>
-
       <div id="taxForecast"></div>
 
-      <div class="tabs">
-        <button class="tabbtn is-active" data-subtab="recurring">Постоянные клиенты</button>
-        <button class="tabbtn" data-subtab="oneoff">Разовые задачи</button>
-      </div>
-
-      <div id="listRecurring" class="list"></div>
-      <div id="listOneoff" class="list" hidden></div>
+      <div id="paymentsCalendar" class="calendarCard"></div>
     </section>
 
     <!-- CLIENTS VIEW -->
@@ -361,6 +353,16 @@
 </div>
 
 <!-- CLIENT DETAIL MODAL -->
+<div class="modal" id="dayDetailModal">
+  <div class="modal__panel modal__panel--wide">
+    <div class="modal__head">
+      <h2 id="dayDetailTitle">Дата</h2>
+      <button class="modal__close" data-close>&times;</button>
+    </div>
+    <div id="dayDetailPayments" class="list"></div>
+  </div>
+</div>
+
 <div class="modal" id="clientDetailModal">
   <div class="modal__panel modal__panel--wide">
     <div class="modal__head">
@@ -383,6 +385,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=12"></script>
+<script src="js/app.js?v=13"></script>
 </body>
 </html>

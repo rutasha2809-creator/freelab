@@ -207,11 +207,9 @@ function renderSkeleton() {
       <div class="tile tile--wide skeleton"><div class="tile__value">0 ₽</div></div>
     `;
   }
-  const listRecurring = document.getElementById('listRecurring');
-  if (listRecurring) {
-    listRecurring.innerHTML = Array.from({ length: 3 }).map(() => `
-      <div class="row skeleton" style="height:82px"></div>
-    `).join('');
+  const calendarEl = document.getElementById('paymentsCalendar');
+  if (calendarEl) {
+    calendarEl.innerHTML = `<div class="skeleton" style="height:360px; border-radius:14px;"></div>`;
   }
 }
 
@@ -557,13 +555,26 @@ function renderMonthProgress() {
   if (fill) requestAnimationFrame(() => { fill.style.width = fill.dataset.targetWidth + '%'; });
 }
 
-// ---------- Рендер: тепловая карта месяца ----------
+// ---------- Рендер: календарь поступлений ----------
 
-function renderMonthHeatmap() {
-  const el = document.getElementById('monthHeatmap');
-  if (!el) return;
+let calendarMonthOffset = 0; // 0 = текущий месяц, +1 = следующий, -1 = предыдущий
+
+function calendarTargetDate() {
   const now = new Date();
-  const year = now.getFullYear(), month = now.getMonth();
+  return new Date(now.getFullYear(), now.getMonth() + calendarMonthOffset, 1);
+}
+
+function dayStatus(dayPayments, today) {
+  const allPaid = dayPayments.every(p => p.factDate);
+  const anyOverdue = dayPayments.some(p => !p.factDate && p.planDate < today);
+  return allPaid ? 'paid' : anyOverdue ? 'overdue' : 'pending';
+}
+
+function renderPaymentsCalendar() {
+  const el = document.getElementById('paymentsCalendar');
+  if (!el) return;
+  const target = calendarTargetDate();
+  const year = target.getFullYear(), month = target.getMonth();
   const totalDays = daysInMonth(year, month);
   const firstIsoWeekday = new Date(year, month, 1).getDay() || 7; // 1=пн...7=вс
 
@@ -577,35 +588,58 @@ function renderMonthHeatmap() {
 
   const today = todayISO();
   const cells = [];
-  for (let i = 1; i < firstIsoWeekday; i++) cells.push('<div class="heatmapCell heatmapCell--empty"></div>');
+  for (let i = 1; i < firstIsoWeekday; i++) cells.push('<div class="calendarDay calendarDay--empty"></div>');
   for (let day = 1; day <= totalDays; day++) {
     const iso = dateForDayInMonth(year, month, day);
     const dayPayments = byDay[day] || [];
-    let cls = 'heatmapCell';
-    let title = '';
+    let cls = 'calendarDay';
+    let chips = '';
     if (dayPayments.length) {
-      const allPaid = dayPayments.every(p => p.factDate);
-      const anyOverdue = dayPayments.some(p => !p.factDate && p.planDate < today);
-      cls += allPaid ? ' heatmapCell--paid' : anyOverdue ? ' heatmapCell--overdue' : ' heatmapCell--pending';
-      const sum = dayPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-      title = `${dayPayments.length} плат. на ${formatMoney(sum)}`;
+      cls += ' calendarDay--has-events';
+      const shown = dayPayments.slice(0, 2);
+      chips = shown.map(p => {
+        const client = getClient(p.clientId);
+        const name = client ? client.name : p.task;
+        return `<div class="chip chip--${deriveStatus(p)}">${escapeHTML(name)} · ${formatMoney(p.amount)}</div>`;
+      }).join('');
+      if (dayPayments.length > shown.length) {
+        chips += `<div class="chip chip--more">+ещё ${dayPayments.length - shown.length}</div>`;
+      }
     }
-    if (iso === today) cls += ' heatmapCell--today';
-    cells.push(`<div class="${cls}" title="${escapeHTML(title)}"><span>${day}</span></div>`);
+    if (iso === today) cls += ' calendarDay--today';
+    cells.push(`<div class="${cls}" ${dayPayments.length ? `data-action="open-day" data-date="${iso}"` : ''}>
+      <div class="calendarDay__num">${day}</div>
+      ${chips}
+    </div>`);
   }
 
+  const isCurrentMonth = calendarMonthOffset === 0;
   el.innerHTML = `
-    <div class="heatmapHead">
-      <span class="heatmapTitle">${MONTHS_NOM[month]}</span>
-      <div class="heatmapLegend">
-        <span><i class="legendDot legendDot--pending"></i>Ожидается</span>
-        <span><i class="legendDot legendDot--paid"></i>Оплачено</span>
-        <span><i class="legendDot legendDot--overdue"></i>Просрочено</span>
+    <div class="calendarHead">
+      <span class="calendarTitle">${MONTHS_NOM[month]}${year !== new Date().getFullYear() ? ' ' + year : ''}</span>
+      <div class="calendarNav">
+        <button type="button" data-action="calendar-prev">‹</button>
+        ${isCurrentMonth ? '' : '<button type="button" class="calendarNavToday" data-action="calendar-today">Сегодня</button>'}
+        <button type="button" data-action="calendar-next">›</button>
       </div>
     </div>
-    <div class="heatmapWeekdays">${WEEKDAY_SHORT.map(w => `<span>${w}</span>`).join('')}</div>
-    <div class="heatmapGrid">${cells.join('')}</div>
+    <div class="calendarLegend">
+      <span><i class="legendDot legendDot--pending"></i>Ожидается</span>
+      <span><i class="legendDot legendDot--paid"></i>Оплачено</span>
+      <span><i class="legendDot legendDot--overdue"></i>Просрочено</span>
+    </div>
+    <div class="calendarWeekdays">${WEEKDAY_SHORT.map(w => `<span>${w}</span>`).join('')}</div>
+    <div class="calendarGrid">${cells.join('')}</div>
   `;
+}
+
+function openDayDetail(iso) {
+  const dayPayments = state.payments.filter(p => p.planDate === iso);
+  if (!dayPayments.length) return;
+  const d = new Date(iso + 'T00:00:00');
+  document.getElementById('dayDetailTitle').textContent = `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  document.getElementById('dayDetailPayments').innerHTML = dayPayments.map(p => paymentRowHTML(p)).join('');
+  document.getElementById('dayDetailModal').classList.add('is-open');
 }
 
 // ---------- Рендер: мини-график истории платежей клиента (спарклайн) ----------
@@ -737,56 +771,6 @@ function monthGroupLabel(iso) {
   const d = new Date(iso + 'T00:00:00');
   const label = MONTHS_NOM[d.getMonth()];
   return d.getFullYear() === new Date().getFullYear() ? label : `${label} ${d.getFullYear()}`;
-}
-
-// Собирает график поступлений в виде таблицы, сгруппированной по месяцам,
-// в хронологическом порядке — с ближайшей предстоящей датой первой в своей группе
-function renderGroupedPayments(payments) {
-  const sorted = payments.slice().sort((a, b) =>
-    a.planDate.localeCompare(b.planDate) || a.task.localeCompare(b.task, 'ru'));
-  const groups = [];
-  for (const p of sorted) {
-    const key = monthGroupKey(p.planDate);
-    let g = groups[groups.length - 1];
-    if (!g || g.key !== key) {
-      g = { key, label: monthGroupLabel(p.planDate), items: [], sum: 0 };
-      groups.push(g);
-    }
-    g.items.push(p);
-    g.sum += Number(p.amount) || 0;
-  }
-  return groups.map(g => `
-    <div class="monthGroup">
-      <div class="monthGroup__head">
-        <span class="monthGroup__title">${g.label}</span>
-        <span class="monthGroup__sum">Итого: ${formatMoney(g.sum)}</span>
-      </div>
-      <div class="monthGroup__rows">
-        ${g.items.map(p => paymentRowHTML(p)).join('')}
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderLists() {
-  const recurringClients = new Set(state.clients.filter(c => c.type === 'recurring').map(c => c.id));
-  const oneoffClients = new Set(state.clients.filter(c => c.type === 'oneoff').map(c => c.id));
-
-  const recurringPayments = state.payments.filter(p => recurringClients.has(p.clientId));
-  const oneoffPayments = state.payments
-    .filter(p => oneoffClients.has(p.clientId))
-    .sort(sortByRelevance);
-
-  const listRecurring = document.getElementById('listRecurring');
-  const listOneoff = document.getElementById('listOneoff');
-
-  listRecurring.innerHTML = recurringPayments.length
-    ? renderGroupedPayments(recurringPayments)
-    : emptyStateHTML('Пока нет постоянных клиентов', 'Добавьте клиента с ежемесячной оплатой и первую запись о платеже', '+ Добавить клиента', 'empty-add-client');
-
-  listOneoff.innerHTML = oneoffPayments.length
-    ? oneoffPayments.map(p => paymentRowHTML(p)).join('')
-    : emptyStateHTML('Пока нет разовых задач', 'Добавьте разовую задачу с суммой и датой оплаты', '+ Добавить запись', 'empty-add-payment');
 }
 
 function sortByRelevance(a, b) {
@@ -1016,9 +1000,8 @@ function renderReports() {
 function renderAll() {
   renderStats();
   renderMonthProgress();
-  renderMonthHeatmap();
   renderTaxForecast();
-  renderLists();
+  renderPaymentsCalendar();
   renderClientsTable();
   fillClientSelect();
   renderReports();
@@ -1037,16 +1020,6 @@ document.querySelectorAll('.navlink').forEach(btn => {
     const view = btn.dataset.view;
     document.querySelectorAll('.view').forEach(v => v.classList.remove('is-active'));
     document.getElementById(`view-${view}`).classList.add('is-active');
-  });
-});
-
-document.querySelectorAll('.tabbtn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tabbtn').forEach(b => b.classList.remove('is-active'));
-    btn.classList.add('is-active');
-    const sub = btn.dataset.subtab;
-    document.getElementById('listRecurring').hidden = sub !== 'recurring';
-    document.getElementById('listOneoff').hidden = sub !== 'oneoff';
   });
 });
 
@@ -1362,6 +1335,17 @@ document.addEventListener('click', async e => {
     openClientModal();
   } else if (action === 'empty-add-payment') {
     openPaymentModal();
+  } else if (action === 'open-day') {
+    openDayDetail(btn.dataset.date);
+  } else if (action === 'calendar-prev') {
+    calendarMonthOffset -= 1;
+    renderPaymentsCalendar();
+  } else if (action === 'calendar-next') {
+    calendarMonthOffset += 1;
+    renderPaymentsCalendar();
+  } else if (action === 'calendar-today') {
+    calendarMonthOffset = 0;
+    renderPaymentsCalendar();
   }
 });
 
