@@ -1629,12 +1629,59 @@ function showToast(msg) {
 
 // ---------- Инициализация: приветствие ----------
 
-function initGreeting() {
+let currentSession = null;
+
+function userDisplayName(session) {
+  const meta = session && session.user && session.user.user_metadata;
+  return ((meta && (meta.display_name || meta.name)) || '').trim();
+}
+
+function avatarInitials(name, email) {
+  const source = (name || (email || '').split('@')[0] || '').trim();
+  if (!source) return '·';
+  const parts = source.split(/[\s._-]+/).filter(Boolean).slice(0, 2);
+  const initials = parts.map(w => w[0]).join('');
+  return (initials || source[0]).toUpperCase();
+}
+
+// Имя, приветствие и подпись в сайдбаре берутся из профиля пользователя,
+// а не зашиты в код: приложением пользуется не один человек
+function applyUserIdentity(session) {
+  currentSession = session;
+  const name = userDisplayName(session);
+  const email = (session && session.user && session.user.email) || '';
   const hour = new Date().getHours();
   const greet = hour < 6 ? 'Доброй ночи' : hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер';
-  document.getElementById('greeting').textContent = `${greet}, Наталия 👋`;
+
+  document.getElementById('greeting').textContent = name ? `${greet}, ${name} 👋` : `${greet} 👋`;
   document.getElementById('todayLabel').textContent = `${todayLabel()} — вот как идут дела с клиентами`;
+
+  const nameEl = document.querySelector('.sidebar__name');
+  if (nameEl) nameEl.textContent = name || email.split('@')[0] || 'Профиль';
+  const avatarEl = document.querySelector('.sidebar__footer .avatar');
+  if (avatarEl) avatarEl.textContent = avatarInitials(name, email);
+
+  document.getElementById('sidebarEmail').textContent = email;
+  const settingsEmail = document.getElementById('settingsEmail');
+  if (settingsEmail) settingsEmail.textContent = email;
+  const nameInput = document.getElementById('profileName');
+  if (nameInput) nameInput.value = name;
 }
+
+document.getElementById('profileForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const input = document.getElementById('profileName');
+  const name = input.value.trim();
+  try {
+    const { data, error } = await sb.auth.updateUser({ data: { display_name: name } });
+    if (error) throw error;
+    applyUserIdentity(data && data.user ? { user: data.user } : currentSession);
+    showToast('Имя сохранено');
+  } catch (err) {
+    console.error(err);
+    showToast('Не удалось сохранить имя');
+  }
+});
 
 // ---------- Аутентификация (Supabase Auth) ----------
 
@@ -1765,10 +1812,7 @@ function showApp(session) {
   appEl.hidden = false;
   authForm.hidden = false;
   recoveryForm.hidden = true;
-  document.getElementById('sidebarEmail').textContent = session.user.email;
-  const settingsEmail = document.getElementById('settingsEmail');
-  if (settingsEmail) settingsEmail.textContent = session.user.email;
-  initGreeting();
+  applyUserIdentity(session);
   // Supabase может прислать несколько событий авторизации подряд (вход, обновление токена);
   // данные загружаем один раз на пользователя, а не при каждом таком событии
   if (loadedForUserId !== session.user.id) {

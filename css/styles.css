@@ -587,6 +587,15 @@ button, input, select, textarea { font-family: inherit; }
   .demoBanner { flex-direction: column; align-items: stretch; text-align: center; }
 }
 
+.profileForm { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.profileForm input {
+  flex: 1 1 200px; min-width: 0; padding: 11px 14px; border-radius: 12px;
+  border: 1.5px solid var(--line); background: var(--paper); color: var(--ink);
+  font-size: 14.5px; font-weight: 600;
+}
+.profileForm input:focus { outline: none; border-color: var(--violet); }
+[data-theme="dark"] .profileForm input { background: var(--bg); }
+
 .settingsCard--mobileOnly { display: none; }
 
 @media (max-width: 720px) {

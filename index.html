@@ -12,7 +12,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=15">
+<link rel="stylesheet" href="css/styles.css?v=16">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -94,10 +94,10 @@
     <div class="sidebar__spacer"></div>
 
     <div class="sidebar__footer">
-      <div class="avatar">НА</div>
+      <div class="avatar"></div>
       <div class="sidebar__footerInfo">
-        <div class="sidebar__name">Наталия</div>
-        <div class="sidebar__role" id="sidebarEmail">Фин. консультант</div>
+        <div class="sidebar__name"></div>
+        <div class="sidebar__role" id="sidebarEmail"></div>
       </div>
       <button type="button" class="btnLogout" id="btnTheme" title="Тёмная тема">
         <svg id="themeIconSun" width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.3" stroke="currentColor" stroke-width="1.8"/><path d="M12 2.5v2.3M12 19.2v2.3M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.5 12h2.3M19.2 12h2.3M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -205,6 +205,15 @@
           <div class="pageheader__sub">Резервная копия данных</div>
         </div>
       </header>
+
+      <div class="card settingsCard">
+        <h3>Ваше имя</h3>
+        <p>Как к вам обращаться в приложении.</p>
+        <form id="profileForm" class="profileForm">
+          <input type="text" id="profileName" maxlength="40" placeholder="Имя" autocomplete="given-name">
+          <button type="submit" class="btn btn--outline">Сохранить</button>
+        </form>
+      </div>
 
       <div class="card settingsCard settingsCard--mobileOnly">
         <h3>Оформление</h3>
@@ -417,6 +426,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=16"></script>
+<script src="js/app.js?v=17"></script>
 </body>
 </html>
