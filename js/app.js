@@ -2151,7 +2151,7 @@ const introCtl = (function () {
   if (!intro) return { play() {}, stop() {} };
   const scenes = [...intro.querySelectorAll('.iScene')];
   const segs = [...intro.querySelectorAll('.introBar span')];
-  const DUR = [2600, 2500, 2700, 3100];
+  const DUR = [5200, 5000, 5400, 7000]; // вдвое медленнее; последняя дольше — рука рисуется долго
   const KEY = 'freelab-intro-seen';
   const REPEAT_AFTER = 12 * 3600 * 1000; // повторно показываем не чаще раза в 12 часов
   let idx = -1, timer = null, running = false;
