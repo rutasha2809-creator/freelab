@@ -2135,13 +2135,37 @@ authForm.addEventListener('submit', async e => {
       if (error) throw error;
     }
   } catch (err) {
-    setNotice(authErrorEl, err.message === 'Invalid login credentials'
-      ? 'Неверный e-mail или пароль'
-      : (err.message || 'Ошибка входа'), 'error');
+    setNotice(authErrorEl, authErrorText(err), 'error');
   } finally {
     authSubmitBtn.disabled = false;
   }
 });
+
+// Supabase отвечает по-английски и довольно технично; переводим на человеческий,
+// чтобы человек понимал, что делать дальше, а не гадал
+function authErrorText(err) {
+  const raw = (err && err.message) ? err.message : '';
+  const m = raw.toLowerCase();
+  // Порядок важен: «for security purposes» тоже приходит с кодом 429,
+  // но означает короткую паузу в секундах, а не часовой лимит на письма
+  if (m.includes('for security purposes'))
+    return 'Слишком часто. Попробуйте ещё раз через минуту.';
+  if (m.includes('rate limit') || err?.status === 429)
+    return 'Слишком много писем за короткое время. Подождите час и попробуйте снова.';
+  if (m.includes('invalid login credentials'))
+    return 'Неверный e-mail или пароль';
+  if (m.includes('email not confirmed'))
+    return 'E-mail ещё не подтверждён. Откройте письмо и перейдите по ссылке из него.';
+  if (m.includes('already registered') || m.includes('already been registered'))
+    return 'Такой e-mail уже зарегистрирован. Попробуйте войти или восстановить пароль.';
+  if (m.includes('password should be at least'))
+    return 'Пароль должен быть не короче 6 символов';
+  if (m.includes('unable to validate email') || m.includes('invalid format'))
+    return 'Проверьте адрес e-mail — похоже, в нём опечатка';
+  if (m.includes('failed to fetch') || m.includes('network'))
+    return 'Нет связи с сервером. Проверьте интернет и попробуйте снова.';
+  return raw || 'Не удалось выполнить вход';
+}
 
 recoveryForm.addEventListener('submit', async e => {
   e.preventDefault();
@@ -2156,7 +2180,7 @@ recoveryForm.addEventListener('submit', async e => {
     const { data } = await sb.auth.getSession();
     if (data.session) showApp(data.session); else showAuth();
   } catch (err) {
-    setNotice(recoveryErrorEl, err.message || 'Не удалось обновить пароль', 'error');
+    setNotice(recoveryErrorEl, authErrorText(err), 'error');
   } finally {
     recoverySubmitBtn.disabled = false;
   }
@@ -2226,8 +2250,11 @@ const introCtl = (function () {
   return { play, stop };
 })();
 
+// Заставку показываем при каждом открытии сайта — и на экране входа, и когда
+// сессия уже есть: она перекрывает всё собой, а под ней спокойно грузится приложение
+introCtl.play();
+
 function showApp(session) {
-  introCtl.stop();
   authScreenEl.hidden = true;
   appEl.hidden = false;
   authForm.hidden = false;
@@ -2252,7 +2279,6 @@ function showAuth() {
   recoveryForm.hidden = true;
   authForm.reset();
   setAuthMode('signin');
-  introCtl.play();
 }
 
 function showRecovery() {
