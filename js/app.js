@@ -2152,21 +2152,18 @@ const introCtl = (function () {
   const scenes = [...intro.querySelectorAll('.iScene')];
   const segs = [...intro.querySelectorAll('.introBar span')];
   const DUR = [5200, 5000, 5400, 7000]; // вдвое медленнее; последняя дольше — рука рисуется долго
-  const KEY = 'freelab-intro-seen';
-  const REPEAT_AFTER = 12 * 3600 * 1000; // повторно показываем не чаще раза в 12 часов
   let idx = -1, timer = null, running = false;
 
-  function stop(remember) {
+  function stop() {
     if (!running) return;
     running = false;
     clearTimeout(timer); timer = null;
     document.removeEventListener('keydown', onKey);
-    if (remember) { try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {} }
     intro.classList.add('is-done');
     setTimeout(() => { intro.hidden = true; intro.classList.remove('is-done'); }, 700);
   }
   function show(n) {
-    if (n >= scenes.length) { stop(true); return; }
+    if (n >= scenes.length) { stop(); return; }
     idx = n;
     scenes.forEach((s, k) => s.classList.toggle('is-on', k === n));
     segs.forEach((s, k) => {
@@ -2181,26 +2178,25 @@ const introCtl = (function () {
     });
     timer = setTimeout(() => show(n + 1), DUR[n]);
   }
-  function onKey(e) { if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') stop(true); }
+  function onKey(e) { if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') stop(); }
 
   intro.addEventListener('click', e => {
-    if (e.target.closest('.introSkip')) { stop(true); return; }
+    if (e.target.closest('.introSkip')) { stop(); return; }
     clearTimeout(timer);
     show(idx + 1);
   });
 
+  // Заставка идёт при каждом заходе на экран входа — пропустить можно кнопкой,
+  // кликом или Esc. Не показываем только тем, кто просил ограничить анимацию.
   function play() {
-    if (running) return;
-    let last = 0;
-    try { last = Number(localStorage.getItem(KEY)) || 0; } catch (e) {}
-    if (prefersReducedMotion || Date.now() - last < REPEAT_AFTER) return;
+    if (running || prefersReducedMotion) return;
     running = true;
     intro.hidden = false;
     intro.classList.remove('is-done');
     document.addEventListener('keydown', onKey);
     requestAnimationFrame(() => show(0));
   }
-  return { play, stop: () => stop(false) };
+  return { play, stop };
 })();
 
 function showApp(session) {

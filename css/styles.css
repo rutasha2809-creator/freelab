@@ -1453,8 +1453,8 @@ button, input, select, textarea { font-family: inherit; }
 
 .introSkip {
   position: absolute; right: 28px; bottom: 26px; border: 1px solid var(--line);
-  background: var(--paper); color: var(--muted); border-radius: 100px;
-  padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
+  background: var(--paper); color: var(--ink); border-radius: 100px;
+  padding: 11px 22px; font-size: 13.5px; font-weight: 700; cursor: pointer;
   backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
   transition: color .2s ease, border-color .2s ease;
 }
