@@ -1417,6 +1417,8 @@ button, input, select, textarea { font-family: inherit; }
   stroke-linecap: round; stroke-linejoin: round;
   stroke-dasharray: var(--l, 1); stroke-dashoffset: var(--l, 1);
 }
+.iScene .s--main { stroke-width: 2.1; }
+.iScene .s--fine { stroke-width: 1; opacity: .55; }
 .iScene.is-on .s { animation: intro-draw var(--t, 1.35s) cubic-bezier(.32,.16,.26,1) var(--d, 0ms) forwards; }
 @keyframes intro-draw { to { stroke-dashoffset: 0; } }
 
