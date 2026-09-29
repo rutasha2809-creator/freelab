@@ -543,7 +543,9 @@ function computeStats() {
     // Просрочку не привязываем к месяцу: долг остаётся долгом, в какой месяц ни листай
     if (status === 'overdue') overdue += amount;
   }
-  return { expected, received, pending, overdue, monthPaid, monthPending, monthOverdue };
+  // remaining — сколько ещё предстоит получить по плану выбранного месяца: без уже оплаченного
+  const remaining = monthPending + monthOverdue;
+  return { expected, remaining, received, pending, overdue, monthPaid, monthPending, monthOverdue };
 }
 
 function computeTaxForecast() {
@@ -658,7 +660,7 @@ function renderStats() {
       <div class="hero-halo"></div>
       <div>
         <div class="tile__label">${labelExpected}</div>
-        <div class="tile__value" data-animate-key="expected" data-animate-value="${s.expected}">0 ₽</div>
+        <div class="tile__value" data-animate-key="expected" data-animate-value="${s.remaining}">0 ₽</div>
       </div>
       <svg class="hero-spark" viewBox="0 0 260 46" preserveAspectRatio="none">${spark || decorativeWaveSVG()}</svg>
     </div>
