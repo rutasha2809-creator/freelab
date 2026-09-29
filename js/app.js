@@ -2624,7 +2624,7 @@ const introCtl = (function () {
   if (!intro) return { play() {}, stop() {} };
   const scenes = [...intro.querySelectorAll('.iScene')];
   const segs = [...intro.querySelectorAll('.introBar span')];
-  const DUR = [5200, 5000, 5400, 7000]; // вдвое медленнее; последняя дольше — рука рисуется долго
+  const DUR = [3800, 5000, 5400, 7000]; // вдвое медленнее; последняя дольше — рука рисуется долго
   let idx = -1, timer = null, running = false;
 
   function stop() {
