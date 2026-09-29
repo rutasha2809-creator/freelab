@@ -14,7 +14,6 @@ const LOCALE = LANG === 'en' ? 'en-GB' : 'ru-RU';
 
 const EN = {
  "Freelance — трекер клиентов": "Freelance — client & payment tracker",
- "ДЕНЬГИ ОТ ЗАКАЗЧИКОВ ПОД КОНТРОЛЕМ": "YOUR CLIENT PAYMENTS UNDER CONTROL",
  "Шаг 1": "Step 1",
  "Внесите информацию о заказе": "Enter your order details",
  "Клиент, задача, сумма, срок платежа.": "Client, task, amount, payment due date.",
@@ -25,8 +24,8 @@ const EN = {
  "Ваш доход как на ладони": "Your income at a glance",
  "Поступления за месяц, налоги, чистый доход.": "Monthly income, taxes, net income.",
  "Пропустить": "Skip",
- "Деньги от заказчиков —": "Client payments —",
- "под контролем": "under control",
+ "Клиенты, платежи и налоги": "Clients, payments and taxes",
+ "в одном приложении": "in one app",
  "Укажите, сколько и когда вам платят. Календарь поступлений приложение построит само, напомнит о просрочке и посчитает налог.": "Tell us how much and when you get paid. The app will build your payment calendar, remind you about overdue payments and calculate your tax.",
  "Получено за сентябрь": "Received in September",
  "3 заказчика": "3 clients",
