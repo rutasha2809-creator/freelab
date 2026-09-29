@@ -340,7 +340,7 @@ function computeScheduledOccurrences(client, fromISO, toISO_) {
     if (!client.planWeekday) return out;
     let date = firstWeekdayOnOrAfter(fromISO, client.planWeekday);
     while (date <= toISO_) {
-      out.push({ planDate: date, amount: client.planAmount, task: t('Еженедельный платёж') });
+      out.push({ planDate: date, amount: client.planAmount, task: 'Еженедельный платёж' });
       date = addDaysISO(date, 7);
     }
     return out;
