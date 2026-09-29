@@ -1852,7 +1852,36 @@ document.getElementById('btnQuickPayment')?.addEventListener('click', () => open
 
 // ---------- Голосовая запись ----------
 
-const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+// В приложении для iPhone/Android встроенного распознавания в браузерной оболочке нет —
+// подключаем системное через плагин Capacitor и оборачиваем его в тот же интерфейс.
+function makeNativeSpeech() {
+  const cap = window.Capacitor;
+  if (!cap || !cap.isNativePlatform || !cap.isNativePlatform() || !cap.registerPlugin) return null;
+  const plugin = cap.registerPlugin('SpeechRecognition');
+  return function NativeSpeech() {
+    const self = this;
+    let handle = null, last = '', ended = false;
+    const finish = () => { if (ended) return; ended = true; if (handle) handle.remove(); self.onend && self.onend(); };
+    this.start = async () => {
+      try {
+        const perm = await plugin.requestPermissions();
+        if (perm.speechRecognition !== 'granted') { self.onerror && self.onerror({ error: 'not-allowed' }); finish(); return; }
+        handle = await plugin.addListener('partialResults', d => {
+          last = (d.matches && d.matches[0]) || '';
+          self.onresult && self.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: last }], { isFinal: false })] });
+        });
+        await plugin.start({ language: self.lang || 'ru-RU', partialResults: true, popup: false });
+      } catch (e) { self.onerror && self.onerror({ error: 'network' }); finish(); }
+    };
+    this.stop = async () => {
+      try { await plugin.stop(); } catch (e) {}
+      if (last) self.onresult && self.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: last }], { isFinal: true })] });
+      finish();
+    };
+  };
+}
+
+const SpeechRec = makeNativeSpeech() || window.SpeechRecognition || window.webkitSpeechRecognition;
 const btnVoice = document.getElementById('btnVoice');
 const voiceBubble = document.getElementById('voiceBubble');
 const voiceBubbleText = document.getElementById('voiceBubbleText');

@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Эскиз анимации руки и денег</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 26% 16%, rgba(128, 92, 255, .20), transparent 34%),
+        radial-gradient(circle at 78% 74%, rgba(38, 214, 184, .13), transparent 35%),
+        #0b0814;
+      font-family: Inter, system-ui, sans-serif;
+    }
+
+    .scene {
+      position: relative;
+      width: min(920px, 94vw);
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      isolation: isolate;
+      border: 1px solid rgba(255,255,255,.11);
+      border-radius: 34px;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.065), rgba(255,255,255,.018)),
+        radial-gradient(circle at 50% 54%, rgba(157, 112, 255, .13), transparent 45%);
+      box-shadow: 0 38px 100px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    /* Плёночная фактура поверх всей композиции */
+    .scene::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      opacity: .14;
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+    }
+
+    /* Нижний слой: купюры падают из верхней части кадра в ладонь.
+       container-type нужен, чтобы размеры банкноты и её деталей
+       масштабировались вместе со сценой (cqw = % ширины сцены). */
+    .money-rain {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+      pointer-events: none;
+      container-type: size;
+    }
+
+    /* Верхний слой: линейная прорисовка кисти. Тёмный фон картинки
+       растворяется screen-смешиванием, поэтому линии ладони и пальцев
+       ложатся поверх купюр — банкноты лежат В ладони, а не поверх рисунка */
+    .hand-art {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      mix-blend-mode: screen;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* Купюра: банкнота крупнее ладони (~276px при сцене 920px; ладонь ~23%
+       ширины сцены), но не закрывает кисть целиком.
+       Позиции заданы в % от сцены, поэтому на любом экране банкнота
+       падает из своей точки старта ровно в центр ладони. */
+    .note {
+      position: absolute;
+      display: block;
+      left: var(--start-x);
+      top: -12%;
+      width: 30cqw;
+      aspect-ratio: 84 / 39;
+      opacity: 0;
+      animation: note-drop 5.4s cubic-bezier(.24,.67,.28,1) infinite;
+      animation-delay: var(--delay);
+      filter: drop-shadow(0 4.5cqw 4cqw rgba(0,0,0,.38));
+    }
+
+    /* Лицевая сторона банкноты — векторный рисунок (inline SVG):
+       гильошный узор, двойная рамка, номинал, серийный номер,
+       гравюрный медальон с силуэтом и защитные полосы */
+    .note__face {
+      position: absolute;
+      inset: 0;
+      display: block;
+      overflow: hidden;
+      border: 1px solid rgba(224,231,199,.92);
+      border-radius: 1.4cqw;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 168 78'%3E%3Cdefs%3E%3ClinearGradient id='base' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23a8b48c'/%3E%3Cstop offset='.5' stop-color='%23ddd6ae'/%3E%3Cstop offset='1' stop-color='%238fa07f'/%3E%3C/linearGradient%3E%3Cpattern id='guilloche' width='14' height='14' patternUnits='userSpaceOnUse'%3E%3Cpath d='M0 7 Q3.5 2 7 7 T14 7' fill='none' stroke='%232f4b34' stroke-opacity='.13' stroke-width='.6'/%3E%3Cpath d='M0 14 Q3.5 9 7 14 T14 14' fill='none' stroke='%232f4b34' stroke-opacity='.09' stroke-width='.6'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='168' height='78' fill='url(%23base)'/%3E%3Crect width='168' height='78' fill='url(%23guilloche)'/%3E%3Cg fill='none' stroke='%232f4b34' stroke-opacity='.14'%3E%3Ccircle cx='84' cy='39' r='9'/%3E%3Ccircle cx='84' cy='39' r='13'/%3E%3Ccircle cx='84' cy='39' r='17'/%3E%3C/g%3E%3Crect x='3' y='3' width='162' height='72' rx='3' fill='none' stroke='%232f4b34' stroke-opacity='.7' stroke-width='1.4'/%3E%3Crect x='6' y='6' width='156' height='66' rx='2' fill='none' stroke='%232f4b34' stroke-opacity='.4' stroke-width='.7'/%3E%3Cpath d='M14 30 H58 M14 48 H58' stroke='%232f4b34' stroke-opacity='.35' stroke-width='.8'/%3E%3Ctext x='14' y='18' font-family='Georgia, serif' font-size='7' letter-spacing='.8' fill='%232f4b34' fill-opacity='.75'%3EAB 1234567%3C/text%3E%3Ctext x='14' y='67' font-family='Georgia, serif' font-size='16' font-weight='700' fill='%232f4b34'%3E100%3C/text%3E%3Ctext x='154' y='20' text-anchor='end' font-family='Georgia, serif' font-size='11' font-weight='700' fill='%232f4b34'%3E100%3C/text%3E%3Cg%3E%3Cellipse cx='134' cy='46' rx='16' ry='19' fill='%23ddd6ae' fill-opacity='.5' stroke='%232f4b34' stroke-opacity='.6' stroke-width='1'/%3E%3Cellipse cx='134' cy='46' rx='13' ry='16' fill='none' stroke='%232f4b34' stroke-opacity='.3' stroke-width='.5'/%3E%3Cpath d='M130 35c-2.8 0-4.8 2.5-4.8 5.2 0 1.8.8 3.3 1.9 4.2-.4 1.4-1.4 2.5-2.9 3.3-1.7.9-2.8 2.3-3 4.6h17.5c-.2-2.5-1.5-4.2-3.4-5.2-1.2-.6-2-1.4-2.2-2.5 1.1-1 1.9-2.5 1.9-4.4 0-2.7-2.1-5.2-5-5.2z' fill='%232f4b34' fill-opacity='.5'/%3E%3C/g%3E%3C/svg%3E");
+      background-size: 100% 100%;
+    }
+    .note__shine {
+      position: absolute;
+      display: block;
+      top: -30%;
+      bottom: -30%;
+      left: -40%;
+      width: 32%;
+      transform: skewX(-18deg);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.38), transparent);
+      animation: note-shine 1.8s ease-in-out infinite;
+    }
+
+    /* Вспышка касания ладони — синхронизирована с приземлением купюр */
+    .impact {
+      position: absolute;
+      display: block;
+      left: 22%;
+      top: 60%;
+      width: 24cqw;
+      height: 2.6cqw;
+      border-radius: 50%;
+      border-top: 2px solid rgba(201,255,244,.58);
+      opacity: 0;
+      transform: scaleX(.25);
+      animation: impact 5.4s ease-out infinite;
+    }
+    .impact--2 { left: 20%; top: 61.5%; animation-delay: -2.16s; }
+
+    /* Падение: банкнота планирует плашмя с лёгким покачиванием из стороны
+       в сторону, мягко касается ладони без отскока, лежит неподвижно
+       и быстро исчезает на месте перед следующим циклом */
+    @keyframes note-drop {
+      0%, 6% {
+        left: var(--start-x);
+        top: -12%;
+        opacity: 0;
+        rotate: calc(var(--turn) - 2deg);
+      }
+      10% { opacity: 1; }
+      24% {
+        left: calc(var(--start-x) + (var(--palm-x) - var(--start-x)) * .45 + 1.5%);
+        top: 10%;
+        rotate: calc(var(--turn) + 1deg);
+      }
+      38% {
+        left: calc(var(--start-x) + (var(--palm-x) - var(--start-x)) * .8 - 1.5%);
+        top: 30%;
+        rotate: calc(var(--turn) - 1deg);
+      }
+      50% {
+        left: var(--palm-x);
+        top: var(--rest-y);
+        opacity: 1;
+        rotate: var(--turn);
+      }
+      54% {
+        top: calc(var(--rest-y) + .5%);
+      }
+      58%, 84% {
+        left: var(--palm-x);
+        top: calc(var(--rest-y) + .5%);
+        opacity: 1;
+        rotate: var(--turn);
+      }
+      92% {
+        left: var(--palm-x);
+        top: calc(var(--rest-y) + .5%);
+        opacity: 0;
+        rotate: var(--turn);
+      }
+      100% {
+        left: var(--palm-x);
+        top: calc(var(--rest-y) + .5%);
+        opacity: 0;
+        rotate: var(--turn);
+      }
+    }
+    @keyframes note-shine {
+      0%, 35% { left: -42%; opacity: 0; }
+      50% { opacity: .8; }
+      75%, 100% { left: 112%; opacity: 0; }
+    }
+    @keyframes impact {
+      0%, 50%, 100% { opacity: 0; transform: scaleX(.25) translateY(0); }
+      53% { opacity: .7; }
+      62% { opacity: 0; transform: scaleX(1.15) translateY(7px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .note, .note__shine, .impact { animation: none; }
+      .note, .impact { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="scene" aria-label="Анимация: купюры падают на раскрытую ладонь">
+    <div class="money-rain" aria-hidden="true">
+      <span class="note" style="--start-x:5%;--palm-x:17.5%;--rest-y:49%;--turn:1.5deg;--delay:0s"><i class="note__face"><i class="note__shine"></i></i></span>
+      <span class="note" style="--start-x:25%;--palm-x:20%;--rest-y:51%;--turn:-1deg;--delay:-1.08s"><i class="note__face"><i class="note__shine"></i></i></span>
+      <span class="note" style="--start-x:45%;--palm-x:18.5%;--rest-y:52%;--turn:.5deg;--delay:-2.16s"><i class="note__face"><i class="note__shine"></i></i></span>
+      <span class="note" style="--start-x:15%;--palm-x:20.5%;--rest-y:49.5%;--turn:-1.5deg;--delay:-3.24s"><i class="note__face"><i class="note__shine"></i></i></span>
+      <span class="note" style="--start-x:35%;--palm-x:19%;--rest-y:50.5%;--turn:1deg;--delay:-4.32s"><i class="note__face"><i class="note__shine"></i></i></span>
+      <i class="impact"></i>
+      <i class="impact impact--2"></i>
+    </div>
+    <img
+      class="hand-art"
+      src="/.cursor/projects/c-Users-rutas-OneDrive-FREELAB/assets/hand-line-art.png"
+      alt="Графическая линейная прорисовка человеческой кисти с раскрытой ладонью">
+  </main>
+</body>
+</html>

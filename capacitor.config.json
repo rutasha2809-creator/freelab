@@ -1,0 +1,11 @@
+{
+  "appId": "com.example.freelance",
+  "appName": "Freelance",
+  "webDir": "www",
+  "backgroundColor": "#1B1626",
+  "ios": { "contentInset": "never" },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 0, "backgroundColor": "#1B1626" },
+    "StatusBar": { "style": "DARK", "backgroundColor": "#1B1626", "overlaysWebView": true }
+  }
+}

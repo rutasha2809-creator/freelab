@@ -5,7 +5,7 @@
 Здесь описано, где что физически лежит, как это всё связано, как публиковать изменения
 и на какие грабли уже наступали.
 
-Дата последнего обновления файла: **29.09.2026**. Актуальные версии ассетов: **v42** (css, app.js), **voice.js v1**.
+Дата последнего обновления файла: **29.09.2026**. Актуальные версии ассетов: **v43** (css, app.js), **voice.js v1**.
 
 ---
 
@@ -260,7 +260,7 @@ exceeded` — пользователь при этом даже не созда�
    `mcp__Supabase__apply_migration`. Наталию об этом не просить.
 3. **Поднять версию в cache-busting параметрах** `css/styles.css?v=N` и `js/app.js?v=N`
    в `index.html` — для каждого изменённого файла. Текущую версию смотреть в файле,
-   не считать в уме. На 29.09.2026 это **v42** (voice.js — v1).
+   не считать в уме. На 29.09.2026 это **v43** (voice.js — v1, fonts.css — v1, vendor/supabase.js — v1).
 4. Записать файлы через `mcp__remote-devices__device_commit_files`
    (`devicePath: "C:\\Users\\rutas\\OneDrive\\Документы\\FREELAB\\..."`, `force: true`).
 5. **Обязательно подождать 8–10 секунд и проверить через `device_bash` (`grep`), что
@@ -382,3 +382,23 @@ exceeded` — пользователь при этом даже не созда�
   сворачивание прошлых месяцев.
 - Заставка весит ~32 КБ инлайн-разметки в `index.html`. Если это станет мешать —
   можно вынести штрихи руки в отдельный файл и подгружать.
+
+
+## 14. Мобильное приложение (iOS и Android) — Capacitor
+
+Решение Наталии (29.09.2026): упаковывать текущий сайт оболочкой **Capacitor** — один код для сайта, iOS и Android.
+Монетизация на старте — разовая покупка; платные функции и другую модель можно добавить позже (через встроенные покупки магазинов).
+
+Что лежит в репозитории:
+- `package.json`, `package-lock.json` — Capacitor 8, плагины status-bar и speech-recognition, @capacitor/assets.
+- `capacitor.config.json` — `appId` **com.example.freelance — ВРЕМЕННЫЙ**, обязательно заменить до первой публикации (после публикации менять нельзя). `appName` — Freelance.
+- `scripts/build-www.mjs` — собирает `www/` из файлов сайта (отдельной копии кода нет).
+- `resources/` — иконка (`icon-only.png`, исходник `icon.svg`) и заставка (`splash*.png`); `npm run assets` раскладывает их по размерам.
+- `icons/`, `manifest.webmanifest` — иконки и манифест для установки сайта на экран телефона (PWA).
+- `mobile-ci/android.yml` — заготовка (пока НЕ в `.github/workflows`, чтобы отказ GitHub принять workflow-файл не сломал публикацию сайта): ручная сборка тестового `.apk` в GitHub Actions (Actions → Run workflow → скачать артефакт). Папки `android/`, `ios/` в репозиторий не кладём: Actions создаёт их заново (`.gitignore`).
+- Шрифты (`fonts/`, `css/fonts.css`) и библиотека Supabase (`js/vendor/supabase.js`) теперь лежат локально — приложение не зависит от Google Fonts и CDN.
+- Отступы под «чёлку»: `viewport-fit=cover` и `env(safe-area-inset-*)`.
+- Голос: в оболочке нет `SpeechRecognition`, поэтому `makeNativeSpeech()` в `app.js` подключает системное распознавание через плагин (тот же интерфейс, остальной код не менялся). Нужны `RECORD_AUDIO` (Android; добавляет workflow) и `NSMicrophoneUsageDescription` + `NSSpeechRecognitionUsageDescription` (iOS, Info.plist).
+
+Ещё не сделано (по порядку): аккаунты Apple Developer ($99/год) и Google Play Console ($25); сборка iOS (нужен macOS-раннер GitHub Actions + сертификаты); реальный appId; политика конфиденциальности (URL) и удаление аккаунта внутри приложения (требование Apple); скриншоты и описание для магазинов; встроенная покупка (разовая); проверка Apple-гайдлайна 4.2 (не «просто сайт в обёртке»).
+Тестовая сборка workflow на GitHub пока НЕ запускалась — возможны правки.

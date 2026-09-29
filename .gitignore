@@ -2,4 +2,7 @@
 Thumbs.db
 node_modules/
 *.log
-hand-animation-preview.html
+
+www/
+android/
+ios/

@@ -1,0 +1,20 @@
+{
+  "name": "freelance-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Freelance — трекер клиентов и платежей (оболочка Capacitor для iOS и Android)",
+  "scripts": {
+    "build:www": "node scripts/build-www.mjs",
+    "sync": "npm run build:www && npx cap sync",
+    "assets": "npx capacitor-assets generate --assetPath resources --iconBackgroundColor #1B1626 --splashBackgroundColor #1B1626"
+  },
+  "dependencies": {
+    "@capacitor-community/speech-recognition": "^7.0.1",
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/status-bar": "^8.0.3"
+  }
+}
