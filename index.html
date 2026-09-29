@@ -16,7 +16,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="css/fonts.css?v=1">
-<link rel="stylesheet" href="css/styles.css?v=45">
+<link rel="stylesheet" href="css/styles.css?v=46">
 <script src="js/vendor/supabase.js?v=1"></script>
 </head>
 <body>
@@ -706,6 +706,18 @@
         </div>
         </div>
 
+        <div class="setGroup" id="remindersRow" hidden>
+          <div class="setGroup__title">Напоминания</div>
+        <div class="setRow">
+          <span class="setRow__icon setRow__icon--mail"><svg viewBox="0 0 24 24" fill="none"><path d="M6 17.5V11a6 6 0 0 1 12 0v6.5l1.5 1.5h-15L6 17.5Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M10 21h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span>
+          <span class="setRow__text">
+            <span class="setRow__name">Напоминания об оплате</span>
+            <span class="setRow__hint">В день ожидаемой оплаты в 10:00 и на следующий день, если деньги не отмечены</span>
+          </span>
+          <span class="setRow__control"><button class="btn btn--outline btn--small" id="btnReminders">Включить</button></span>
+        </div>
+        </div>
+
         <div class="setGroup">
           <div class="setGroup__title">Валюта</div>
         <div class="setRow">
@@ -1020,6 +1032,6 @@
 <div class="toast" id="toast"></div>
 
 <script src="js/voice.js?v=1"></script>
-<script src="js/app.js?v=45"></script>
+<script src="js/app.js?v=46"></script>
 </body>
 </html>

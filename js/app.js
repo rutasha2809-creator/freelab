@@ -1387,7 +1387,82 @@ document.addEventListener('click', e => {
   renderAll();
 });
 
+// ---------- Напоминания об оплате (только в приложении для телефона) ----------
+// Локальные уведомления планируются на самом устройстве, сервер не нужен.
+// В браузере раздел скрыт и ничего не планируется.
+
+const LocalNotif = (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() && window.Capacitor.registerPlugin)
+  ? window.Capacitor.registerPlugin('LocalNotifications') : null;
+const REMIND_HOUR = 10;
+const REMIND_LIMIT = 60; // iOS хранит не больше 64 запланированных уведомлений
+
+function remindersOn() {
+  try { return localStorage.getItem('freelab-reminders') === '1'; } catch (e) { return false; }
+}
+
+function notifId(paymentId, kind) {
+  let h = 7;
+  for (let i = 0; i < paymentId.length; i++) h = (h * 31 + paymentId.charCodeAt(i)) % 1000000;
+  return h * 10 + kind; // kind 1 — в день оплаты, 2 — на следующий день
+}
+
+let remindTimer = null;
+function scheduleReminders() {
+  if (!LocalNotif) return;
+  clearTimeout(remindTimer);
+  remindTimer = setTimeout(async () => {
+    try {
+      const pending = await LocalNotif.getPending();
+      if (pending.notifications && pending.notifications.length) await LocalNotif.cancel({ notifications: pending.notifications.map(n => ({ id: n.id })) });
+      if (!remindersOn()) return;
+      const now = Date.now();
+      const list = [];
+      state.payments.filter(p => !p.factDate).forEach(p => {
+        const c = getClient(p.clientId);
+        if (!c) return;
+        const day = new Date(p.planDate + 'T00:00:00');
+        const money = formatMoney(p.amount, clientCurrency(c));
+        const at1 = new Date(day); at1.setHours(REMIND_HOUR, 0, 0, 0);
+        const at2 = new Date(at1); at2.setDate(at2.getDate() + 1);
+        if (at1.getTime() > now) list.push({ id: notifId(p.id, 1), at: at1, title: 'Сегодня ожидается поступление', body: `${c.name} · ${money} · ${p.task}` });
+        if (at2.getTime() > now) list.push({ id: notifId(p.id, 2), at: at2, title: 'Оплата не поступила', body: `${c.name} · ${money}. Отметьте получение или перенесите срок` });
+      });
+      list.sort((a, b) => a.at - b.at);
+      const notifications = list.slice(0, REMIND_LIMIT).map(n => ({ id: n.id, title: n.title, body: n.body, schedule: { at: n.at } }));
+      if (notifications.length) await LocalNotif.schedule({ notifications });
+    } catch (e) { console.error('reminders', e); }
+  }, 600);
+}
+
+function syncRemindersUI() {
+  const row = document.getElementById('remindersRow');
+  if (!row) return;
+  row.hidden = !LocalNotif;
+  const btn = document.getElementById('btnReminders');
+  if (btn) btn.textContent = remindersOn() ? 'Выключить' : 'Включить';
+}
+
+document.getElementById('btnReminders')?.addEventListener('click', async () => {
+  if (!LocalNotif) return;
+  if (remindersOn()) {
+    try { localStorage.setItem('freelab-reminders', '0'); } catch (e) {}
+    syncRemindersUI(); scheduleReminders();
+    showToast('Напоминания выключены');
+    return;
+  }
+  try {
+    let perm = await LocalNotif.checkPermissions();
+    if (perm.display !== 'granted') perm = await LocalNotif.requestPermissions();
+    if (perm.display !== 'granted') { showToast('Разрешите уведомления в настройках телефона'); return; }
+    localStorage.setItem('freelab-reminders', '1');
+    syncRemindersUI(); scheduleReminders();
+    showToast('Напоминания включены');
+  } catch (e) { console.error(e); showToast('Не удалось включить напоминания'); }
+});
+
 function renderAll() {
+  syncRemindersUI();
+  scheduleReminders();
   renderCurrencySwitch();
   renderFirstRun();
   renderDemoBanner();

@@ -25,6 +25,7 @@ jobs:
         run: |
           f=android/app/src/main/AndroidManifest.xml
           grep -q RECORD_AUDIO $f || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.RECORD_AUDIO" />\n</manifest>#' $f
+          grep -q POST_NOTIFICATIONS $f || sed -i 's#</manifest>#    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n</manifest>#' $f
       - run: npx cap sync android
       - name: Лицензии Android SDK
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
