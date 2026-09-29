@@ -15,7 +15,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=41">
+<link rel="stylesheet" href="css/styles.css?v=42">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -727,6 +727,18 @@
 
   </main>
 
+  <!-- Голосовая запись: кнопка появляется, только если браузер умеет распознавать речь -->
+  <button type="button" class="fab fab--mic" id="btnVoice" title="Продиктовать запись" aria-label="Продиктовать запись" hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="9" y="3" width="6" height="11" rx="3" stroke="currentColor" stroke-width="2"/>
+      <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </button>
+  <div class="voiceBubble" id="voiceBubble" hidden role="status" aria-live="polite">
+    <span class="voiceBubble__dot"></span>
+    <span class="voiceBubble__text" id="voiceBubbleText">Слушаю…</span>
+  </div>
+
   <!-- Быстрая запись платежа — доступна с любой страницы -->
   <button type="button" class="fab" id="btnQuickPayment" title="Новая запись" aria-label="Новая запись">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -848,12 +860,34 @@
 </div>
 
 <!-- PAYMENT MODAL -->
+<div class="modal" id="remainderModal">
+  <div class="modal__panel">
+    <div class="modal__head">
+      <h2>Остаток</h2>
+      <button class="modal__close" data-close>&times;</button>
+    </div>
+    <form id="remainderForm">
+      <p class="remainderClient" id="remainderClient"></p>
+      <p class="remainderText" id="remainderText"></p>
+      <label class="field">
+        <span>Когда ждёте остаток</span>
+        <input type="date" id="remainderDate" required>
+      </label>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" data-close>Не нужно</button>
+        <button type="submit" class="btn btn--dark">Создать запись</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal" id="paymentModal">
   <div class="modal__panel">
     <div class="modal__head">
       <h2 id="paymentModalTitle">Новая запись</h2>
       <button class="modal__close" data-close>&times;</button>
     </div>
+    <div class="voiceEcho" id="voiceEcho" hidden></div>
     <form id="paymentForm">
       <input type="hidden" id="paymentId">
       <label class="field">
@@ -945,6 +979,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/app.js?v=41"></script>
+<script src="js/voice.js?v=1"></script>
+<script src="js/app.js?v=42"></script>
 </body>
 </html>
