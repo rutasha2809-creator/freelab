@@ -395,10 +395,10 @@ exceeded` — пользователь при этом даже не созда�
 - `scripts/build-www.mjs` — собирает `www/` из файлов сайта (отдельной копии кода нет).
 - `resources/` — иконка (`icon-only.png`, исходник `icon.svg`) и заставка (`splash*.png`); `npm run assets` раскладывает их по размерам.
 - `icons/`, `manifest.webmanifest` — иконки и манифест для установки сайта на экран телефона (PWA).
-- `mobile-ci/android.yml` — заготовка (пока НЕ в `.github/workflows`, чтобы отказ GitHub принять workflow-файл не сломал публикацию сайта): ручная сборка тестового `.apk` в GitHub Actions (Actions → Run workflow → скачать артефакт). Папки `android/`, `ios/` в репозиторий не кладём: Actions создаёт их заново (`.gitignore`).
+- `.github/workflows/android.yml` — ручная сборка тестового `.apk` в GitHub Actions (Actions → Run workflow → скачать артефакт). Папки `android/`, `ios/` в репозиторий не кладём: Actions создаёт их заново (`.gitignore`).
 - Шрифты (`fonts/`, `css/fonts.css`) и библиотека Supabase (`js/vendor/supabase.js`) теперь лежат локально — приложение не зависит от Google Fonts и CDN.
 - Отступы под «чёлку»: `viewport-fit=cover` и `env(safe-area-inset-*)`.
 - Голос: в оболочке нет `SpeechRecognition`, поэтому `makeNativeSpeech()` в `app.js` подключает системное распознавание через плагин (тот же интерфейс, остальной код не менялся). Нужны `RECORD_AUDIO` (Android; добавляет workflow) и `NSMicrophoneUsageDescription` + `NSSpeechRecognitionUsageDescription` (iOS, Info.plist).
 
 Ещё не сделано (по порядку): аккаунты Apple Developer ($99/год) и Google Play Console ($25); сборка iOS (нужен macOS-раннер GitHub Actions + сертификаты); реальный appId; политика конфиденциальности (URL) и удаление аккаунта внутри приложения (требование Apple); скриншоты и описание для магазинов; встроенная покупка (разовая); проверка Apple-гайдлайна 4.2 (не «просто сайт в обёртке»).
-Тестовая сборка workflow на GitHub пока НЕ запускалась — возможны правки.
+Сборку запускать на GitHub: Actions → «Android (тестовая сборка)» → Run workflow (29.09.2026 ещё не запускалась — возможны правки). Файл `.github/workflows/*` инструмент записи защищает: правки в него вносить вручную или через shell устройства.

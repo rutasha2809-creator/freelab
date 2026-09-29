@@ -6,7 +6,7 @@
   "scripts": {
     "build:www": "node scripts/build-www.mjs",
     "sync": "npm run build:www && npx cap sync",
-    "assets": "npx capacitor-assets generate --assetPath resources --iconBackgroundColor #1B1626 --splashBackgroundColor #1B1626"
+    "assets": "npx capacitor-assets generate --assetPath resources --iconBackgroundColor '#1B1626' --splashBackgroundColor '#1B1626'"
   },
   "dependencies": {
     "@capacitor-community/speech-recognition": "^7.0.1",
