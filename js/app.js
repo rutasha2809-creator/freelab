@@ -433,8 +433,26 @@ function amountOf(p) {
   return Number(p.amount) || 0;
 }
 
+// Налоговый режим пользователя: 'npd' — самозанятый РФ (4% с физлиц и 6% с юрлиц по «договору»),
+// 'flat' — один свой процент со всех поступлений, 'none' — налог не считаем.
+// Хранится в профиле пользователя (user_metadata.tax), поэтому одинаков на всех устройствах.
+let taxSettings = { mode: 'npd', rate: 0 };
+
+function readTaxSettings(session) {
+  const meta = session && session.user && session.user.user_metadata;
+  const t = meta && meta.tax;
+  const mode = t && ['npd', 'flat', 'none'].includes(t.mode) ? t.mode : 'npd';
+  const rate = Math.max(0, Math.min(100, Number(t && t.rate) || 0));
+  taxSettings = { mode, rate };
+}
+
+function taxName() { return taxSettings.mode === 'npd' ? 'Налог НПД' : 'Налог'; }
+
 function clientTaxRatePercent(client) {
-  if (!client || !client.contract || !client.contract.enabled) return 0;
+  if (!client) return 0;
+  if (taxSettings.mode === 'none') return 0;
+  if (taxSettings.mode === 'flat') return taxSettings.rate;
+  if (!client.contract || !client.contract.enabled) return 0;
   return client.contract.payerType === 'company' ? 6 : 4;
 }
 function paymentTax(payment) {
@@ -645,7 +663,10 @@ function renderStats() {
 
 function renderTaxForecast() {
   const el = document.getElementById('taxForecast');
-  const hasContractClients = state.clients.some(c => c.contract && c.contract.enabled);
+  if (taxSettings.mode === 'none') { el.innerHTML = ''; return; }
+  const hasContractClients = taxSettings.mode === 'flat'
+    ? state.clients.length > 0
+    : state.clients.some(c => c.contract && c.contract.enabled);
   if (!hasContractClients) {
     el.innerHTML = `<div class="forecastBand--empty">
       <span>Отметьте клиента «по договору», чтобы видеть здесь прогноз дохода и налога НПД за месяц</span>
@@ -659,7 +680,7 @@ function renderTaxForecast() {
   el.innerHTML = `
     <div class="forecastBand">
       <div class="forecastBand__item">
-        <div class="forecastBand__label">Налог НПД за ${MONTHS_ACC[dashboardMonth().month]}</div>
+        <div class="forecastBand__label">${taxName()} за ${MONTHS_ACC[dashboardMonth().month]}</div>
         <div class="forecastBand__value" data-animate-key="taxTax" data-animate-value="${f.tax}">0 ₽</div>
       </div>
       <div class="forecastBand__item">
@@ -1088,7 +1109,8 @@ function openClientDetail(clientId) {
   const typeBadge = c.type === 'recurring'
     ? '<span class="badge badge--violet">Постоянный</span>'
     : '<span class="badge badge--violet" style="background:#FFE8DE;color:#FF7A50;">Разовый</span>';
-  const contractBadge = (c.contract && c.contract.enabled)
+  const contractBadge = taxSettings.mode !== 'npd' ? ''
+    : (c.contract && c.contract.enabled)
     ? `<span class="badge badge--contract">Договор · ${c.contract.payerType === 'company' ? '6%' : '4%'}</span>`
     : '<span class="badge badge--nocontract">Без договора</span>';
   document.getElementById('detailClientMeta').innerHTML = typeBadge + contractBadge;
@@ -1229,6 +1251,7 @@ function renderReports() {
     byClient.set(c.id, agg);
   }
   const netAll = grossAll - taxAll;
+  const noTax = taxSettings.mode === 'none';
 
   const everReceived = state.payments.some(p => p.factDate);
 
@@ -1237,14 +1260,14 @@ function renderReports() {
       <div class="tile__label">Получено за период</div>
       <div class="tile__value">${formatMoney(grossAll)}</div>
     </div>
-    <div class="tile">
-      <div class="tile__label" style="color:var(--muted)">Налог НПД</div>
+    ${noTax ? '' : `<div class="tile">
+      <div class="tile__label" style="color:var(--muted)">${taxName()}</div>
       <div class="tile__value">${formatMoney(taxAll)}</div>
     </div>
     <div class="tile">
       <div class="tile__label" style="color:var(--muted)">Осталось на руки</div>
       <div class="tile__value">${formatMoney(netAll)}</div>
-    </div>
+    </div>`}
   `;
 
   const chart = monthlyIncomeChartSVG();
@@ -1262,9 +1285,10 @@ function renderReports() {
   const rows = Array.from(byClient.values()).sort((a, b) => b.gross - a.gross);
   const tableEl = document.getElementById('reportTable');
   if (rows.length) {
+    tableEl.classList.toggle('is-notax', noTax);
     tableEl.innerHTML = `
       <div class="reportTableHead">
-        <span>Заказчик</span><span>Получено</span><span>Налог</span><span>На руки</span>
+        <span>Заказчик</span><span>Получено</span>${noTax ? '' : '<span>Налог</span><span>На руки</span>'}
       </div>
       ${rows.map(r => `
         <div class="reportRow">
@@ -1273,8 +1297,8 @@ function renderReports() {
             <div class="reportRow__sub">${r.type === 'recurring' ? 'Постоянный' : 'Разовый'}</div>
           </div>
           <div class="reportRow__num" data-label="Получено">${formatMoney(r.gross)}</div>
-          <div class="reportRow__num" data-label="Налог">${formatMoney(r.tax)}</div>
-          <div class="reportRow__num" data-label="На руки">${formatMoney(r.gross - r.tax)}</div>
+          ${noTax ? '' : `<div class="reportRow__num" data-label="Налог">${formatMoney(r.tax)}</div>
+          <div class="reportRow__num" data-label="На руки">${formatMoney(r.gross - r.tax)}</div>`}
         </div>
       `).join('')}
     `;
@@ -1397,7 +1421,7 @@ function setClientContractUI(enabled) {
   document.querySelectorAll('#clientForm [data-contract]').forEach(o => {
     o.classList.toggle('is-active', (o.dataset.contract === '1') === enabled);
   });
-  document.getElementById('payerTypeWrap').hidden = !enabled;
+  document.getElementById('payerTypeWrap').hidden = !enabled || taxSettings.mode !== 'npd';
 }
 
 // Редко нужные настройки спрятаны: простой случай — четыре поля, сложный по-прежнему доступен
@@ -1590,7 +1614,7 @@ function updateTaxPreview() {
   const el = document.getElementById('taxPreview');
   if (rate > 0 && amount > 0) {
     el.hidden = false;
-    el.textContent = `Налог НПД ${rate}%: ${formatMoney(amount * rate / 100)} · на руки: ${formatMoney(amount - amount * rate / 100)}`;
+    el.textContent = `${taxName()} ${rate}%: ${formatMoney(amount * rate / 100)} · на руки: ${formatMoney(amount - amount * rate / 100)}`;
   } else {
     el.hidden = true;
   }
@@ -2117,6 +2141,8 @@ function avatarInitials(name, email) {
 // а не зашиты в код: приложением пользуется не один человек
 function applyUserIdentity(session) {
   currentSession = session;
+  readTaxSettings(session);
+  syncTaxUI();
   const name = userDisplayName(session);
   const email = (session && session.user && session.user.email) || '';
   const hour = new Date().getHours();
@@ -2136,6 +2162,44 @@ function applyUserIdentity(session) {
   const nameInput = document.getElementById('profileName');
   if (nameInput) nameInput.value = name;
 }
+
+// Раздел «Налоги» в настройках и всё, что зависит от режима
+function syncTaxUI() {
+  const modeEl = document.getElementById('taxMode');
+  if (!modeEl) return;
+  modeEl.value = taxSettings.mode;
+  const rateEl = document.getElementById('taxRate');
+  rateEl.value = taxSettings.rate || '';
+  rateEl.hidden = taxSettings.mode !== 'flat';
+  // Поля «по договору / кто платит» в карточке клиента нужны только самозанятым РФ
+  const contractField = document.getElementById('clientContract')?.closest('label');
+  if (contractField) contractField.hidden = taxSettings.mode !== 'npd';
+  const payerWrap = document.getElementById('payerTypeWrap');
+  if (payerWrap && taxSettings.mode !== 'npd') payerWrap.hidden = true;
+}
+
+document.getElementById('taxMode')?.addEventListener('change', e => {
+  document.getElementById('taxRate').hidden = e.target.value !== 'flat';
+});
+
+document.getElementById('taxForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const mode = document.getElementById('taxMode').value;
+  const rate = Math.max(0, Math.min(100, Number(document.getElementById('taxRate').value) || 0));
+  if (mode === 'flat' && !rate) { showToast('Укажите ставку налога'); document.getElementById('taxRate').focus(); return; }
+  try {
+    const { data, error } = await sb.auth.updateUser({ data: { tax: { mode, rate: mode === 'flat' ? rate : 0 } } });
+    if (error) throw error;
+    if (data && data.user) currentSession = { ...currentSession, user: data.user };
+    readTaxSettings(currentSession);
+    syncTaxUI();
+    renderAll();
+    showToast('Настройки налога сохранены');
+  } catch (err) {
+    console.error(err);
+    showToast('Не удалось сохранить настройки');
+  }
+});
 
 async function saveDisplayName(name) {
   const { data, error } = await sb.auth.updateUser({ data: { display_name: name } });

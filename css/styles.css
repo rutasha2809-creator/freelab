@@ -1545,3 +1545,12 @@ button, input, select, textarea { font-family: inherit; }
   .iScene .chip { opacity: .92; }
   .iScene--title.is-on .iBig, .iScene--title.is-on .iSub { animation: none; }
 }
+
+/* Налоги: выбор режима и таблица отчёта без налоговых колонок */
+.profileForm select {
+  border: 1px solid var(--line); background: var(--menu-bg); color: var(--menu-fg);
+  border-radius: var(--r-control); padding: 9px 12px; font-size: 13.5px; max-width: 100%;
+}
+.profileForm input[type="number"] { width: 110px; }
+.profileForm input[hidden] { display: none; }
+.clientsTable.is-notax .reportTableHead, .clientsTable.is-notax .reportRow { grid-template-columns: minmax(0,2fr) minmax(0,1fr); }

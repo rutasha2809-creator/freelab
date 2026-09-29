@@ -16,7 +16,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="css/fonts.css?v=1">
-<link rel="stylesheet" href="css/styles.css?v=43">
+<link rel="stylesheet" href="css/styles.css?v=44">
 <script src="js/vendor/supabase.js?v=1"></script>
 </head>
 <body>
@@ -685,6 +685,26 @@
         </div>
 
         <div class="setGroup">
+          <div class="setGroup__title">Налоги</div>
+        <div class="setRow">
+          <span class="setRow__icon setRow__icon--tax"><svg viewBox="0 0 24 24" fill="none"><path d="M6 19L18 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="7.6" cy="7.6" r="2.4" stroke="currentColor" stroke-width="1.9"/><circle cx="16.4" cy="16.4" r="2.4" stroke="currentColor" stroke-width="1.9"/></svg></span>
+          <span class="setRow__text">
+            <span class="setRow__name">Как считать налог</span>
+            <span class="setRow__hint">Влияет на суммы «на руки» и налоговый прогноз</span>
+          </span>
+          <span class="setRow__control"><form id="taxForm" class="profileForm">
+            <select id="taxMode">
+              <option value="npd">Самозанятый в России (НПД 4% и 6%)</option>
+              <option value="flat">Свой процент</option>
+              <option value="none">Не считать налог</option>
+            </select>
+            <input type="number" id="taxRate" min="0" max="100" step="0.1" placeholder="Ставка, %" hidden>
+            <button type="submit" class="btn btn--outline btn--small">Сохранить</button>
+          </form></span>
+        </div>
+        </div>
+
+        <div class="setGroup">
           <div class="setGroup__title">Оформление</div>
         <div class="setRow">
           <span class="setRow__icon setRow__icon--theme"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.4" stroke="currentColor" stroke-width="1.9"/><path d="M12 2.6v2.2M12 19.2v2.2M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span>
@@ -981,6 +1001,6 @@
 <div class="toast" id="toast"></div>
 
 <script src="js/voice.js?v=1"></script>
-<script src="js/app.js?v=43"></script>
+<script src="js/app.js?v=44"></script>
 </body>
 </html>
