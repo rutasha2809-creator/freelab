@@ -421,6 +421,13 @@ function getClient(id) { return state.clients.find(c => c.id === id); }
 
 // Сколько денег на самом деле стоит за записью: по оплаченной — фактическая сумма,
 // если она введена, иначе плановая. Всё, что считает деньги, ходит через неё.
+// На какой день календаря попадает запись: пока не оплачено — на плановый,
+// как только деньги пришли — на фактический. Календарь показывает движение денег,
+// а не обещания: заплатили 29-го вместо 28-го — запись переезжает на 29-е.
+function dateOf(p) {
+  return p.factDate || p.planDate;
+}
+
 function amountOf(p) {
   if (p.factDate && p.factAmount != null) return Number(p.factAmount) || 0;
   return Number(p.amount) || 0;
@@ -707,7 +714,7 @@ function renderPaymentsCalendar() {
 
   const byDay = {};
   state.payments.forEach(p => {
-    const d = new Date(p.planDate + 'T00:00:00');
+    const d = new Date(dateOf(p) + 'T00:00:00');
     if (d.getFullYear() === year && d.getMonth() === month) {
       (byDay[d.getDate()] ||= []).push(p);
     }
@@ -869,7 +876,7 @@ function renderDemoBanner() {
 }
 
 function openDayDetail(iso) {
-  const dayPayments = state.payments.filter(p => p.planDate === iso);
+  const dayPayments = state.payments.filter(p => dateOf(p) === iso);
   if (!dayPayments.length) return;
   const d = new Date(iso + 'T00:00:00');
   document.getElementById('dayDetailTitle').textContent = `${d.getDate()} ${MONTHS[d.getMonth()]}`;
