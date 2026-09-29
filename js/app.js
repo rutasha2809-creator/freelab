@@ -29,6 +29,7 @@ function normalizeClient(c) {
     contract: c.contract && typeof c.contract === 'object'
       ? { enabled: !!c.contract.enabled, payerType: c.contract.payerType === 'company' ? 'company' : 'individual' }
       : { enabled: false, payerType: 'individual' },
+    currency: CURRENCIES[c.currency] ? c.currency : mainCurrency,
     isDemo: !!c.isDemo,
     createdAt: c.createdAt || todayISO(),
   };
@@ -50,6 +51,7 @@ function rowToClient(row) {
     planAmount2: row.plan_amount2,
     planDay2: row.plan_day2,
     contract: { enabled: row.contract_enabled, payerType: row.payer_type },
+    currency: row.currency,
     isDemo: !!row.is_demo,
     createdAt: row.created_at,
   });
@@ -69,6 +71,7 @@ function clientToRow(c) {
     plan_day2: c.planDay2 ?? null,
     contract_enabled: !!(c.contract && c.contract.enabled),
     payer_type: (c.contract && c.contract.payerType) || 'individual',
+    currency: CURRENCIES[c.currency] ? c.currency : mainCurrency,
     is_demo: !!c.isDemo,
   };
 }
@@ -127,8 +130,25 @@ function uid() {
 // ---------- Форматирование ----------
 
 const moneyFmt = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
-function formatMoney(n) {
-  return moneyFmt.format(Math.round(Number(n) || 0)) + ' ₽';
+// Валюты. Суммы разных валют никогда не складываются: у каждого заказчика своя валюта,
+// а итоги на экране показываются для одной выбранной (переключатель появляется, когда валют больше одной).
+const CURRENCIES = {
+  RUB: { sym: '₽', name: 'Российский рубль' },
+  USD: { sym: '$', name: 'Доллар США' },
+  EUR: { sym: '€', name: 'Евро' },
+  GBP: { sym: '£', name: 'Фунт стерлингов' },
+  UAH: { sym: '₴', name: 'Украинская гривна' },
+  KZT: { sym: '₸', name: 'Казахстанский тенге' },
+  BYN: { sym: 'Br', name: 'Белорусский рубль' },
+  AED: { sym: 'AED', name: 'Дирхам ОАЭ' },
+  CNY: { sym: '¥', name: 'Китайский юань' },
+};
+let mainCurrency = 'RUB';   // основная: по умолчанию для новых заказчиков и главного экрана
+let viewCurrency = 'RUB';   // для какой валюты сейчас показаны итоги
+function currencySym(code) { return (CURRENCIES[code] || { sym: code || '₽' }).sym; }
+
+function formatMoney(n, cur) {
+  return moneyFmt.format(Math.round(Number(n) || 0)) + ' ' + currencySym(cur || viewCurrency);
 }
 
 // ---------- Небольшие UI-эффекты (анимация цифр, конфетти) ----------
@@ -418,6 +438,10 @@ function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 // ---------- Производные данные: клиенты и налог ----------
 
 function getClient(id) { return state.clients.find(c => c.id === id); }
+function clientCurrency(c) { return (c && c.currency) || mainCurrency; }
+function payCur(p) { return clientCurrency(getClient(p.clientId)); }
+// Входит ли платёж в итоги той валюты, которая сейчас выбрана
+function inView(p) { return payCur(p) === viewCurrency; }
 
 // Сколько денег на самом деле стоит за записью: по оплаченной — фактическая сумма,
 // если она введена, иначе плановая. Всё, что считает деньги, ходит через неё.
@@ -444,7 +468,12 @@ function readTaxSettings(session) {
   const mode = t && ['npd', 'flat', 'none'].includes(t.mode) ? t.mode : 'npd';
   const rate = Math.max(0, Math.min(100, Number(t && t.rate) || 0));
   taxSettings = { mode, rate };
+  const cur = meta && meta.currency;
+  const nextMain = CURRENCIES[cur] ? cur : 'RUB';
+  if (nextMain !== mainCurrency || !viewCurrencyTouched) viewCurrency = nextMain;
+  mainCurrency = nextMain;
 }
+let viewCurrencyTouched = false;
 
 function taxName() { return taxSettings.mode === 'npd' ? 'Налог НПД' : 'Налог'; }
 
@@ -494,6 +523,7 @@ function computeStats() {
   // Состав выбранного месяца — для полосы внутри главной плитки
   let monthPaid = 0, monthPending = 0, monthOverdue = 0;
   for (const p of state.payments) {
+    if (!inView(p)) continue;
     const status = deriveStatus(p);
     const amount = amountOf(p);
     if (isInMonth(p.planDate, year, month)) {
@@ -514,6 +544,7 @@ function computeTaxForecast() {
   const { year, month } = dashboardMonth();
   let gross = 0, tax = 0;
   for (const p of state.payments) {
+    if (!inView(p)) continue;
     if (!isInMonth(p.planDate, year, month)) continue;
     const c = getClient(p.clientId);
     const rate = clientTaxRatePercent(c);
@@ -535,7 +566,7 @@ function overallSparklineSVG() {
   }
   const byKey = Object.fromEntries(keys.map(k => [k, 0]));
   state.payments.forEach(p => {
-    if (!p.factDate) return;
+    if (!p.factDate || !inView(p)) return;
     const key = monthGroupKey(p.factDate);
     if (key in byKey) byKey[key] += amountOf(p);
   });
@@ -758,8 +789,8 @@ function renderPaymentsCalendar() {
         const name = client ? client.name : p.task;
         // В подсказке — назначение платежа: в один день у клиента может быть
         // и аванс, и остаток, и по имени с суммой их не различить
-        const hint = `${name} · ${p.task} · ${formatMoney(amountOf(p))}`;
-        return `<div class="chip chip--${deriveStatus(p)}" title="${escapeHTML(hint)}">${escapeHTML(name)} · ${formatMoney(amountOf(p))}</div>`;
+        const hint = `${name} · ${p.task} · ${formatMoney(amountOf(p), payCur(p))}`;
+        return `<div class="chip chip--${deriveStatus(p)}" title="${escapeHTML(hint)}">${escapeHTML(name)} · ${formatMoney(amountOf(p), payCur(p))}</div>`;
       }).join('');
       if (dayPayments.length > shown.length) {
         chips += `<div class="chip chip--more">+ещё ${dayPayments.length - shown.length}</div>`;
@@ -783,7 +814,7 @@ function renderPaymentsCalendar() {
             <span class="agendaItem__name">${escapeHTML(name)}</span>
             <span class="agendaItem__task">${escapeHTML(p.task)}</span>
           </span>
-          <span class="agendaItem__amount">${formatMoney(amountOf(p))}</span>
+          <span class="agendaItem__amount">${formatMoney(amountOf(p), payCur(p))}</span>
         </div>`;
       }).join('');
       agendaDays.push(`<div class="agendaDay ${iso === today ? 'agendaDay--today' : ''}" data-action="open-day" data-date="${iso}">
@@ -989,10 +1020,10 @@ function paymentRowHTML(payment, opts = {}) {
           <div class="row__dates-value" style="${status === 'overdue' ? 'color:#E8493C;' : ''}">${formatDateShort(payment.planDate)} / ${formatDateShort(payment.factDate)}</div>
         </div>
         <div class="row__amount">
-          <div>${formatMoney(amountOf(payment))}</div>
+          <div>${formatMoney(amountOf(payment), payCur(payment))}</div>
           ${payment.factAmount != null && payment.factAmount !== payment.amount
-            ? `<div class="row__amount-sub">план ${formatMoney(payment.amount)}</div>`
-            : (rate > 0 ? `<div class="row__amount-sub">на руки ${formatMoney(paymentNet(payment))}</div>` : '')}
+            ? `<div class="row__amount-sub">план ${formatMoney(payment.amount, payCur(payment))}</div>`
+            : (rate > 0 ? `<div class="row__amount-sub">на руки ${formatMoney(paymentNet(payment), payCur(payment))}</div>` : '')}
         </div>
         ${statusPill(status)}
         <div class="row__actions">
@@ -1049,18 +1080,19 @@ const WEEKDAY_NAMES = { 1: 'понедельникам', 2: 'вторникам'
 
 function clientPlanLineText(client) {
   if (!client.planAmount) return '';
+  const cur = clientCurrency(client);
   if (client.type === 'recurring') {
     if (client.planFrequency === 'weekly') {
-      return `${formatMoney(client.planAmount)}${client.planWeekday ? ` · по ${WEEKDAY_NAMES[client.planWeekday]}` : ' · еженедельно'}`;
+      return `${formatMoney(client.planAmount, cur)}${client.planWeekday ? ` · по ${WEEKDAY_NAMES[client.planWeekday]}` : ' · еженедельно'}`;
     }
-    const first = `${formatMoney(client.planAmount)}${client.planDay ? ` · до ${client.planDay} числа` : ' · ежемесячно'}`;
+    const first = `${formatMoney(client.planAmount, cur)}${client.planDay ? ` · до ${client.planDay} числа` : ' · ежемесячно'}`;
     if (client.planAmount2) {
-      const second = `${formatMoney(client.planAmount2)}${client.planDay2 ? ` · до ${client.planDay2} числа` : ''}`;
+      const second = `${formatMoney(client.planAmount2, cur)}${client.planDay2 ? ` · до ${client.planDay2} числа` : ''}`;
       return `Аванс: ${first} + Остаток: ${second}`;
     }
     return first;
   }
-  return `${formatMoney(client.planAmount)}${client.planDate ? ` · до ${formatDateShort(client.planDate)}` : ''}`;
+  return `${formatMoney(client.planAmount, cur)}${client.planDate ? ` · до ${formatDateShort(client.planDate)}` : ''}`;
 }
 
 function renderClientsTable() {
@@ -1178,7 +1210,7 @@ function monthlyIncomeChartSVG() {
     months.push({ year: d.getFullYear(), month: d.getMonth(), sum: 0 });
   }
   state.payments.forEach(p => {
-    if (!p.factDate) return;
+    if (!p.factDate || !inView(p)) return;
     const d = new Date(p.factDate + 'T00:00:00');
     const slot = months.find(m => m.year === d.getFullYear() && m.month === d.getMonth());
     if (slot) slot.sum += amountOf(p);
@@ -1235,7 +1267,7 @@ function renderReports() {
   if (!fromEl.value || !toEl.value) return;
   const from = fromEl.value, to = toEl.value;
 
-  const payments = state.payments.filter(p => p.factDate && p.factDate >= from && p.factDate <= to);
+  const payments = state.payments.filter(p => p.factDate && p.factDate >= from && p.factDate <= to && inView(p));
 
   let grossAll = 0, taxAll = 0;
   const byClient = new Map();
@@ -1336,7 +1368,27 @@ function renderDashboardMonth() {
   renderPaymentsCalendar();
 }
 
+// Переключатель валют: появляется, только если у заказчиков больше одной валюты
+function renderCurrencySwitch() {
+  const used = new Set([mainCurrency]);
+  state.clients.forEach(c => used.add(clientCurrency(c)));
+  if (!used.has(viewCurrency)) viewCurrency = mainCurrency;
+  const html = used.size < 2 ? '' : Array.from(used).map(code =>
+    `<button type="button" class="curChip${code === viewCurrency ? ' is-active' : ''}" data-cur="${code}" title="${CURRENCIES[code] ? CURRENCIES[code].name : code}">${currencySym(code)}</button>`
+  ).join('');
+  document.querySelectorAll('.curSwitch').forEach(el => { el.innerHTML = html; el.hidden = !html; });
+}
+
+document.addEventListener('click', e => {
+  const chip = e.target.closest('.curChip');
+  if (!chip) return;
+  viewCurrency = chip.dataset.cur;
+  viewCurrencyTouched = true;
+  renderAll();
+});
+
 function renderAll() {
+  renderCurrencySwitch();
   renderFirstRun();
   renderDemoBanner();
   renderDashboardMonth();
@@ -1408,7 +1460,9 @@ function setSplitPayUI(enabled) {
 function updatePlanDayLabel() {
   const isWeekly = document.getElementById('clientFrequency').value === 'weekly';
   const splitPay = document.getElementById('clientSplitPay').checked;
-  document.getElementById('planAmountLabel').textContent = splitPay ? 'Аванс, ₽' : 'Плановая сумма, ₽';
+  const sym = currencySym(document.getElementById('clientCurrency').value);
+  document.getElementById('planAmountLabel').textContent = splitPay ? `Аванс, ${sym}` : `Плановая сумма, ${sym}`;
+  document.getElementById('planAmount2Label').textContent = `Зарплата/остаток, ${sym}`;
   document.getElementById('planDayLabel').textContent = isWeekly ? 'День недели' : (splitPay ? 'День аванса' : 'День платежа');
 }
 document.getElementById('clientSplitPay').addEventListener('change', e => setSplitPayUI(e.target.checked));
@@ -1460,14 +1514,20 @@ document.querySelectorAll('#clientForm [data-payer]').forEach(opt => {
   opt.addEventListener('click', () => setPayerTypeUI(opt.dataset.payer));
 });
 
+document.getElementById('clientCurrency').innerHTML = Object.entries(CURRENCIES)
+  .map(([code, c]) => `<option value="${code}">${c.sym} · ${c.name}</option>`).join('');
+document.getElementById('clientCurrency').addEventListener('change', updatePlanDayLabel);
+
 function openClientModal(editId) {
   clientForm.reset();
+  document.getElementById('clientCurrency').value = mainCurrency;
   document.getElementById('clientId').value = editId || '';
   if (editId) {
     const c = getClient(editId);
     document.getElementById('clientModalTitle').textContent = 'Редактировать клиента';
     document.getElementById('clientName').value = c.name;
     document.getElementById('clientTasks').value = c.tasksDesc || '';
+    document.getElementById('clientCurrency').value = clientCurrency(c);
     document.getElementById('clientPlanAmount').value = c.planAmount ?? '';
     document.getElementById('clientPlanDay').value = c.planDay ?? '';
     document.getElementById('clientPlanWeekday').value = c.planWeekday ?? '1';
@@ -1519,7 +1579,7 @@ clientForm.addEventListener('submit', async e => {
   const payerType = document.getElementById('clientPayerType').value;
   if (!name) return;
 
-  const draft = { name, type, tasksDesc, planAmount, planDay, planFrequency, planWeekday, planDate, planAmount2, planDay2, contract: { enabled: contractEnabled, payerType } };
+  const draft = { name, type, tasksDesc, planAmount, planDay, planFrequency, planWeekday, planDate, planAmount2, planDay2, currency: document.getElementById('clientCurrency').value, contract: { enabled: contractEnabled, payerType } };
   const row = clientToRow(draft);
 
   try {
@@ -1611,10 +1671,14 @@ function updateTaxPreview() {
     ? (Number(factRaw) || 0) : plan;
   const c = getClient(clientId);
   const rate = clientTaxRatePercent(c);
+  const cur = clientCurrency(c);
+  const sym = currencySym(cur);
+  document.getElementById('paymentAmountLabel').textContent = `Сумма, ${sym}`;
+  document.getElementById('paymentFactLabel').textContent = `Фактическая сумма, ${sym}`;
   const el = document.getElementById('taxPreview');
   if (rate > 0 && amount > 0) {
     el.hidden = false;
-    el.textContent = `${taxName()} ${rate}%: ${formatMoney(amount * rate / 100)} · на руки: ${formatMoney(amount - amount * rate / 100)}`;
+    el.textContent = `${taxName()} ${rate}%: ${formatMoney(amount * rate / 100, cur)} · на руки: ${formatMoney(amount - amount * rate / 100, cur)}`;
   } else {
     el.hidden = true;
   }
@@ -1721,7 +1785,7 @@ function openRemainderModal(ctx) {
   const c = getClient(ctx.clientId);
   document.getElementById('remainderClient').textContent = c ? c.name : 'Заказчик';
   document.getElementById('remainderText').textContent =
-    `Получено меньше плана. Не хватает ${formatMoney(ctx.rest)}.`;
+    `Получено меньше плана. Не хватает ${formatMoney(ctx.rest, clientCurrency(c))}.`;
   remainderModal.classList.add('is-open');
   document.getElementById('remainderDate').focus();
 }
@@ -2167,6 +2231,11 @@ function applyUserIdentity(session) {
 function syncTaxUI() {
   const modeEl = document.getElementById('taxMode');
   if (!modeEl) return;
+  const curEl = document.getElementById('mainCurrency');
+  if (curEl) {
+    if (!curEl.options.length) curEl.innerHTML = Object.entries(CURRENCIES).map(([code, c]) => `<option value="${code}">${c.sym} · ${c.name}</option>`).join('');
+    curEl.value = mainCurrency;
+  }
   modeEl.value = taxSettings.mode;
   const rateEl = document.getElementById('taxRate');
   rateEl.value = taxSettings.rate || '';
@@ -2177,6 +2246,23 @@ function syncTaxUI() {
   const payerWrap = document.getElementById('payerTypeWrap');
   if (payerWrap && taxSettings.mode !== 'npd') payerWrap.hidden = true;
 }
+
+document.getElementById('mainCurrency')?.addEventListener('change', async e => {
+  const code = e.target.value;
+  try {
+    const { data, error } = await sb.auth.updateUser({ data: { currency: code } });
+    if (error) throw error;
+    if (data && data.user) currentSession = { ...currentSession, user: data.user };
+    viewCurrencyTouched = false;
+    readTaxSettings(currentSession);
+    renderAll();
+    showToast('Основная валюта сохранена');
+  } catch (err) {
+    console.error(err);
+    e.target.value = mainCurrency;
+    showToast('Не удалось сохранить настройки');
+  }
+});
 
 document.getElementById('taxMode')?.addEventListener('change', e => {
   document.getElementById('taxRate').hidden = e.target.value !== 'flat';

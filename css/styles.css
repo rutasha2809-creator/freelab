@@ -1554,3 +1554,19 @@ button, input, select, textarea { font-family: inherit; }
 .profileForm input[type="number"] { width: 110px; }
 .profileForm input[hidden] { display: none; }
 .clientsTable.is-notax .reportTableHead, .clientsTable.is-notax .reportRow { grid-template-columns: minmax(0,2fr) minmax(0,1fr); }
+
+/* Валюты: переключатель итогов и выбор */
+.curSwitch { display: flex; gap: 8px; margin: 0 0 14px; flex-wrap: wrap; }
+.curSwitch[hidden] { display: none; }
+.curChip {
+  min-width: 44px; padding: 8px 14px; border-radius: 100px; border: 1px solid var(--line);
+  background: var(--paper); color: var(--ink); font-weight: 700; font-size: 14px; cursor: pointer;
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  transition: transform .15s ease, background .2s ease, border-color .2s ease;
+}
+.curChip:hover { transform: translateY(-1px); }
+.curChip.is-active { background: var(--violet); border-color: var(--violet); color: #fff; }
+.setSelect {
+  border: 1px solid var(--line); background: var(--menu-bg); color: var(--menu-fg);
+  border-radius: var(--r-control); padding: 9px 12px; font-size: 13.5px; max-width: 100%;
+}
