@@ -111,7 +111,7 @@ async function fetchState() {
   ]);
   if (cErr || pErr) {
     console.error(cErr || pErr);
-    showToast('Не удалось загрузить данные из облака');
+    showToast(t('Не удалось загрузить данные'));
     return;
   }
   state = {
@@ -129,26 +129,30 @@ function uid() {
 
 // ---------- Форматирование ----------
 
-const moneyFmt = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+const moneyFmt = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 });
 // Валюты. Суммы разных валют никогда не складываются: у каждого заказчика своя валюта,
 // а итоги на экране показываются для одной выбранной (переключатель появляется, когда валют больше одной).
 const CURRENCIES = {
-  RUB: { sym: '₽', name: 'Российский рубль' },
-  USD: { sym: '$', name: 'Доллар США' },
-  EUR: { sym: '€', name: 'Евро' },
-  GBP: { sym: '£', name: 'Фунт стерлингов' },
-  UAH: { sym: '₴', name: 'Украинская гривна' },
-  KZT: { sym: '₸', name: 'Казахстанский тенге' },
-  BYN: { sym: 'Br', name: 'Белорусский рубль' },
-  AED: { sym: 'AED', name: 'Дирхам ОАЭ' },
-  CNY: { sym: '¥', name: 'Китайский юань' },
+  RUB: { sym: '₽', name: t('Российский рубль') },
+  USD: { sym: '$', name: t('Доллар США') },
+  EUR: { sym: '€', name: t('Евро') },
+  GBP: { sym: '£', name: t('Фунт стерлингов') },
+  UAH: { sym: '₴', name: t('Украинская гривна') },
+  KZT: { sym: '₸', name: t('Казахстанский тенге') },
+  BYN: { sym: 'Br', name: t('Белорусский рубль') },
+  AED: { sym: 'AED', name: t('Дирхам ОАЭ') },
+  CNY: { sym: '¥', name: t('Китайский юань') },
 };
 let mainCurrency = 'RUB';   // основная: по умолчанию для новых заказчиков и главного экрана
 let viewCurrency = 'RUB';   // для какой валюты сейчас показаны итоги
 function currencySym(code) { return (CURRENCIES[code] || { sym: code || '₽' }).sym; }
 
 function formatMoney(n, cur) {
-  return moneyFmt.format(Math.round(Number(n) || 0)) + ' ' + currencySym(cur || viewCurrency);
+  const num = moneyFmt.format(Math.round(Number(n) || 0));
+  const sym = currencySym(cur || viewCurrency);
+  // По-английски знак валюты ставят перед числом: £2,400; кодом — с пробелом: AED 2,400
+  if (LANG === 'en') return /^[A-Z]{2,}$/.test(sym) ? `${sym} ${num}` : `${sym}${num}`;
+  return num + ' ' + sym;
 }
 
 // ---------- Небольшие UI-эффекты (анимация цифр, конфетти) ----------
@@ -277,7 +281,7 @@ function formatDateShort(iso) {
   if (!iso) return '—';
   const d = new Date(iso + 'T00:00:00');
   if (isNaN(d)) return '—';
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  return d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' });
 }
 
 function todayISO() {
@@ -336,7 +340,7 @@ function computeScheduledOccurrences(client, fromISO, toISO_) {
     if (!client.planWeekday) return out;
     let date = firstWeekdayOnOrAfter(fromISO, client.planWeekday);
     while (date <= toISO_) {
-      out.push({ planDate: date, amount: client.planAmount, task: 'Еженедельный платёж' });
+      out.push({ planDate: date, amount: client.planAmount, task: t('Еженедельный платёж') });
       date = addDaysISO(date, 7);
     }
     return out;
@@ -347,7 +351,7 @@ function computeScheduledOccurrences(client, fromISO, toISO_) {
     const start = new Date(fromISO + 'T00:00:00');
     const end = new Date(toISO_ + 'T00:00:00');
     let y = start.getFullYear(), m = start.getMonth();
-    const task = client.planAmount2 ? 'Аванс' : 'Плановый платёж';
+    const task = client.planAmount2 ? t('Аванс') : t('Плановый платёж');
     while (y < end.getFullYear() || (y === end.getFullYear() && m <= end.getMonth())) {
       const date = dateForDayInMonth(y, m, client.planDay);
       if (date >= fromISO && date <= toISO_) out.push({ planDate: date, amount: client.planAmount, task });
@@ -361,7 +365,7 @@ function computeScheduledOccurrences(client, fromISO, toISO_) {
     let y = start.getFullYear(), m = start.getMonth();
     while (y < end.getFullYear() || (y === end.getFullYear() && m <= end.getMonth())) {
       const date = dateForDayInMonth(y, m, client.planDay2);
-      if (date >= fromISO && date <= toISO_) out.push({ planDate: date, amount: client.planAmount2, task: 'Остаток' });
+      if (date >= fromISO && date <= toISO_) out.push({ planDate: date, amount: client.planAmount2, task: t('Остаток') });
       m++;
       if (m > 11) { m = 0; y++; }
     }
@@ -422,16 +426,17 @@ async function clearFutureAutoPayments(clientId) {
   );
 }
 
-const WEEKDAYS = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
-const WEEKDAY_SHORT = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const WEEKDAYS = LANG === 'en' ? ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'] : ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+const WEEKDAY_SHORT = LANG === 'en' ? ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] : ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS = LANG === 'en' ? MONTHS_EN : ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 // «за сентябрь» (а не «за сентября») и «в сентябре» — разные падежи, поэтому два отдельных списка
-const MONTHS_ACC = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
-const MONTHS_PREP = ['январе','феврале','марте','апреле','мае','июне','июле','августе','сентябре','октябре','ноябре','декабре'];
+const MONTHS_ACC = LANG === 'en' ? MONTHS_EN : ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+const MONTHS_PREP = LANG === 'en' ? MONTHS_EN : ['январе','феврале','марте','апреле','мае','июне','июле','августе','сентябре','октябре','ноябре','декабре'];
 
 function todayLabel() {
   const d = new Date();
-  return `${capitalize(WEEKDAYS[d.getDay()])}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  return LANG === 'en' ? `${capitalize(WEEKDAYS[d.getDay()])}, ${d.getDate()} ${MONTHS[d.getMonth()]}` : `${capitalize(WEEKDAYS[d.getDay()])}, ${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 
@@ -475,7 +480,7 @@ function readTaxSettings(session) {
 }
 let viewCurrencyTouched = false;
 
-function taxName() { return taxSettings.mode === 'npd' ? 'Налог НПД' : 'Налог'; }
+function taxName() { return taxSettings.mode === 'npd' ? t('Налог НПД') : t('Налог'); }
 
 function clientTaxRatePercent(client) {
   if (!client) return 0;
@@ -601,9 +606,9 @@ function heroBreakdownHTML(s) {
   if (!total) return '';
   const pct = v => (v / total) * 100;
   const parts = [
-    { key: 'paid', label: 'Получено', value: s.monthPaid },
-    { key: 'pending', label: 'Ожидается', value: s.monthPending },
-    { key: 'overdue', label: 'Просрочено', value: s.monthOverdue },
+    { key: 'paid', label: t('Получено'), value: s.monthPaid },
+    { key: 'pending', label: t('Ожидается'), value: s.monthPending },
+    { key: 'overdue', label: t('Просрочено'), value: s.monthOverdue },
   ].filter(p => p.value > 0);
 
   return `
@@ -643,10 +648,10 @@ function renderStats() {
   // Месяц называет только главная плитка — она и служит указателем периода.
   // Остальные подписи постоянны: если они меняются при листании, текст «скачет»,
   // и кажется, будто изменились сами данные
-  const labelExpected = isNow ? 'Ожидается в этом месяце' : `Ожидается в ${MONTHS_PREP[month]}`;
-  const labelReceived = 'Уже получено';
-  const labelPending = 'В ожидании оплаты';
-  const labelOverdue = 'Просрочено всего';
+  const labelExpected = isNow ? t('Ожидается в этом месяце') : t('Ожидается в {month}', { month: MONTHS_PREP[month] });
+  const labelReceived = t('Уже получено');
+  const labelPending = t('В ожидании оплаты');
+  const labelOverdue = t('Просрочено всего');
   el.innerHTML = `
     <div class="tile tile--hero tile--dark">
       <div class="hero-halo"></div>
@@ -700,7 +705,7 @@ function renderTaxForecast() {
     : state.clients.some(c => c.contract && c.contract.enabled);
   if (!hasContractClients) {
     el.innerHTML = `<div class="forecastBand--empty">
-      <span>Отметьте клиента «по договору», чтобы видеть здесь прогноз дохода и налога НПД за месяц</span>
+      <span>${t('Отметьте клиента «по договору», чтобы видеть здесь прогноз дохода и налога НПД за месяц')}</span>
     </div>`;
     return;
   }
@@ -711,11 +716,11 @@ function renderTaxForecast() {
   el.innerHTML = `
     <div class="forecastBand">
       <div class="forecastBand__item">
-        <div class="forecastBand__label">${taxName()} за ${MONTHS_ACC[dashboardMonth().month]}</div>
+        <div class="forecastBand__label">${t('{tax} за {month}', { tax: taxName(), month: MONTHS_ACC[dashboardMonth().month] })}</div>
         <div class="forecastBand__value" data-animate-key="taxTax" data-animate-value="${f.tax}">0 ₽</div>
       </div>
       <div class="forecastBand__item">
-        <div class="forecastBand__label">На руки</div>
+        <div class="forecastBand__label">${t('На руки')}</div>
         <div class="forecastBand__value" data-animate-key="taxNet" data-animate-value="${net}">0 ₽</div>
       </div>
     </div>
@@ -738,11 +743,11 @@ function renderMonthProgress() {
   el.innerHTML = `
     <div class="progressCard">
       <div class="progressCard__row">
-        <span class="progressCard__label">Собрано за ${MONTHS_ACC[month]}</span>
+        <span class="progressCard__label">${t('Собрано за {month}', { month: MONTHS_ACC[month] })}</span>
         <span class="progressCard__pct">${pct}%</span>
       </div>
       <div class="progressCard__track"><div class="progressCard__fill" style="width:0%" data-target-width="${pct}"></div></div>
-      <div class="progressCard__sub">${formatMoney(s.received)} из ${formatMoney(total)} по плану на месяц</div>
+      <div class="progressCard__sub">${t('{a} из {b} по плану на месяц', { a: formatMoney(s.received), b: formatMoney(total) })}</div>
     </div>
   `;
   const fill = el.querySelector('.progressCard__fill');
@@ -793,7 +798,7 @@ function renderPaymentsCalendar() {
         return `<div class="chip chip--${deriveStatus(p)}" title="${escapeHTML(hint)}">${escapeHTML(name)} · ${formatMoney(amountOf(p), payCur(p))}</div>`;
       }).join('');
       if (dayPayments.length > shown.length) {
-        chips += `<div class="chip chip--more">+ещё ${dayPayments.length - shown.length}</div>`;
+        chips += `<div class="chip chip--more">${t('+ещё {n}', { n: dayPayments.length - shown.length })}</div>`;
       }
     }
     if (iso === today) cls += ' calendarDay--today';
@@ -832,22 +837,22 @@ function renderPaymentsCalendar() {
     <div class="calendarHead">
       <span class="calendarTitle">${MONTHS_NOM[month]}${year !== new Date().getFullYear() ? ' ' + year : ''}</span>
       <div class="calendarNav">
-        ${isCurrentMonth ? '' : '<button type="button" class="calendarNavToday" data-action="calendar-today">Сегодня</button>'}
+        ${isCurrentMonth ? '' : '<button type="button" class="calendarNavToday" data-action="calendar-today">' + t('Сегодня') + '</button>'}
         <button type="button" class="calendarNavArrow" data-action="calendar-prev">‹</button>
         <button type="button" class="calendarNavArrow" data-action="calendar-next">›</button>
       </div>
     </div>
     <div class="calendarLegend">
-      <span><i class="legendDot legendDot--pending"></i>Ожидается</span>
-      <span><i class="legendDot legendDot--paid"></i>Оплачено</span>
-      <span><i class="legendDot legendDot--overdue"></i>Просрочено</span>
+      <span><i class="legendDot legendDot--pending"></i>${t('Ожидается')}</span>
+      <span><i class="legendDot legendDot--paid"></i>${t('Оплачено')}</span>
+      <span><i class="legendDot legendDot--overdue"></i>${t('Просрочено')}</span>
     </div>
     <div class="calendarWeekdays">${WEEKDAY_SHORT.map(w => `<span>${w}</span>`).join('')}</div>
     <div class="calendarGrid">${cells.join('')}</div>
     <div class="calendarAgenda">${
       agendaDays.length
         ? agendaDays.join('')
-        : '<div class="agendaEmpty">В этом месяце поступлений нет</div>'
+        : '<div class="agendaEmpty">' + t('В этом месяце поступлений нет') + '</div>'
     }</div>
   `;
 }
@@ -872,11 +877,11 @@ async function createDemoData() {
   const dayOf = iso => new Date(iso + 'T00:00:00').getDate();
 
   const demoClients = [
-    { name: 'Онлайн-школа', type: 'recurring', tasksDesc: 'Веду соцсети', planAmount: 15000,
+    { name: t('Онлайн-школа'), type: 'recurring', tasksDesc: t('Веду соцсети'), planAmount: 15000,
       planDay: dayOf(soon), planFrequency: 'monthly', contract: { enabled: true, payerType: 'company' }, isDemo: true },
-    { name: 'Кофейня у дома', type: 'recurring', tasksDesc: 'Тексты для рассылки', planAmount: 6000,
+    { name: t('Кофейня у дома'), type: 'recurring', tasksDesc: t('Тексты для рассылки'), planAmount: 6000,
       planDay: dayOf(paid), planFrequency: 'monthly', contract: { enabled: false, payerType: 'individual' }, isDemo: true },
-    { name: 'Андрей (сайт)', type: 'oneoff', tasksDesc: '', planAmount: null,
+    { name: t('Андрей (сайт)'), type: 'oneoff', tasksDesc: '', planAmount: null,
       planDay: null, planFrequency: 'monthly', contract: { enabled: false, payerType: 'individual' }, isDemo: true },
   ];
 
@@ -890,9 +895,9 @@ async function createDemoData() {
   // Три записи, чтобы сразу были видны все статусы: оплачено, ожидается, просрочено.
   // У плановых стоит признак автосоздания — тогда генератор графика не продублирует их.
   const demoPayments = [
-    { client_id: inserted[0].id, task: 'Плановый платёж', amount: 15000, plan_date: soon, fact_date: null, auto_generated: true },
-    { client_id: inserted[1].id, task: 'Плановый платёж', amount: 6000, plan_date: paid, fact_date: paid, auto_generated: true },
-    { client_id: inserted[2].id, task: 'Лендинг под ключ', amount: 20000, plan_date: late, fact_date: null, auto_generated: false },
+    { client_id: inserted[0].id, task: t('Плановый платёж'), amount: 15000, plan_date: soon, fact_date: null, auto_generated: true },
+    { client_id: inserted[1].id, task: t('Плановый платёж'), amount: 6000, plan_date: paid, fact_date: paid, auto_generated: true },
+    { client_id: inserted[2].id, task: t('Лендинг под ключ'), amount: 20000, plan_date: late, fact_date: null, auto_generated: false },
   ];
   const { error: pErr } = await sb.from('payments').insert(demoPayments);
   if (pErr) throw pErr;
@@ -986,9 +991,9 @@ function avatarColor() {
 }
 
 function statusPill(status) {
-  if (status === 'paid') return '<span class="pill pill--paid">Оплачено</span>';
-  if (status === 'overdue') return '<span class="pill pill--overdue">Просрочено</span>';
-  return '<span class="pill pill--pending">Ожидается</span>';
+  if (status === 'paid') return '<span class="pill pill--paid">' + t('Оплачено') + '</span>';
+  if (status === 'overdue') return '<span class="pill pill--overdue">' + t('Просрочено') + '</span>';
+  return '<span class="pill pill--pending">' + t('Ожидается') + '</span>';
 }
 
 function paymentRowHTML(payment, opts = {}) {
@@ -1009,31 +1014,31 @@ function paymentRowHTML(payment, opts = {}) {
       </div>
       ${client.type === 'recurring' ? `<span class="badge badge--violet">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M17 2.1l4 4-4 4M7 21.9l-4-4 4-4M21 6.1H8a4 4 0 0 0-4 4v2M3 17.9h13a4 4 0 0 0 4-4v-2" stroke="#6C3CE9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        ${client.planFrequency === 'weekly' ? 'Еженедельно' : 'Ежемесячно'}</span>` : ''}`;
+        ${client.planFrequency === 'weekly' ? t('Еженедельно') : t('Ежемесячно')}</span>` : ''}`;
 
   return `
     <div class="row ${status === 'overdue' ? 'row--overdue' : ''}" data-payment-id="${payment.id}">
       <div class="row__left">${leftHTML}</div>
       <div class="row__right">
         <div class="row__dates">
-          <div class="row__dates-label">План / Факт</div>
+          <div class="row__dates-label">${t('План / Факт')}</div>
           <div class="row__dates-value" style="${status === 'overdue' ? 'color:#E8493C;' : ''}">${formatDateShort(payment.planDate)} / ${formatDateShort(payment.factDate)}</div>
         </div>
         <div class="row__amount">
           <div>${formatMoney(amountOf(payment), payCur(payment))}</div>
           ${payment.factAmount != null && payment.factAmount !== payment.amount
-            ? `<div class="row__amount-sub">план ${formatMoney(payment.amount, payCur(payment))}</div>`
-            : (rate > 0 ? `<div class="row__amount-sub">на руки ${formatMoney(paymentNet(payment), payCur(payment))}</div>` : '')}
+            ? `<div class="row__amount-sub">${t('план {a}', { a: formatMoney(payment.amount, payCur(payment)) })}</div>`
+            : (rate > 0 ? `<div class="row__amount-sub">${t('на руки {a}', { a: formatMoney(paymentNet(payment), payCur(payment)) })}</div>` : '')}
         </div>
         ${statusPill(status)}
         <div class="row__actions">
-          ${status !== 'paid' ? `<button class="iconbtn" title="Отметить оплаченным" data-action="mark-paid" data-id="${payment.id}">
+          ${status !== 'paid' ? `<button class="iconbtn" title="${t('Отметить оплаченным')}" data-action="mark-paid" data-id="${payment.id}">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>` : ''}
-          <button class="iconbtn" title="Редактировать" data-action="edit-payment" data-id="${payment.id}">
+          <button class="iconbtn" title="${t('Редактировать')}" data-action="edit-payment" data-id="${payment.id}">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 20l.8-3.6L16 5.2a1.6 1.6 0 0 1 2.3 0l.5.5a1.6 1.6 0 0 1 0 2.3L7.6 19.2 4 20Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
           </button>
-          <button class="iconbtn iconbtn--danger" title="Удалить" data-action="delete-payment" data-id="${payment.id}">
+          <button class="iconbtn iconbtn--danger" title="${t('Удалить')}" data-action="delete-payment" data-id="${payment.id}">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m-9 0 1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -1052,7 +1057,7 @@ function emptyStateHTML(title, sub, btnLabel, action) {
   `;
 }
 
-const MONTHS_NOM = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const MONTHS_NOM = LANG === 'en' ? MONTHS_EN : ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
 function monthGroupKey(iso) {
   const d = new Date(iso + 'T00:00:00');
@@ -1076,29 +1081,31 @@ function sortByRelevance(a, b) {
 
 // ---------- Рендер: клиенты ----------
 
-const WEEKDAY_NAMES = { 1: 'понедельникам', 2: 'вторникам', 3: 'средам', 4: 'четвергам', 5: 'пятницам', 6: 'субботам', 7: 'воскресеньям' };
+const WEEKDAY_NAMES = LANG === 'en'
+  ? { 1: 'Mondays', 2: 'Tuesdays', 3: 'Wednesdays', 4: 'Thursdays', 5: 'Fridays', 6: 'Saturdays', 7: 'Sundays' }
+  : { 1: 'понедельникам', 2: 'вторникам', 3: 'средам', 4: 'четвергам', 5: 'пятницам', 6: 'субботам', 7: 'воскресеньям' };
 
 function clientPlanLineText(client) {
   if (!client.planAmount) return '';
   const cur = clientCurrency(client);
   if (client.type === 'recurring') {
     if (client.planFrequency === 'weekly') {
-      return `${formatMoney(client.planAmount, cur)}${client.planWeekday ? ` · по ${WEEKDAY_NAMES[client.planWeekday]}` : ' · еженедельно'}`;
+      return `${formatMoney(client.planAmount, cur)}${client.planWeekday ? ' · ' + t('по {d}', { d: WEEKDAY_NAMES[client.planWeekday] }) : ' · ' + t('еженедельно')}`;
     }
-    const first = `${formatMoney(client.planAmount, cur)}${client.planDay ? ` · до ${client.planDay} числа` : ' · ежемесячно'}`;
+    const first = `${formatMoney(client.planAmount, cur)}${client.planDay ? ' · ' + t('до {d} числа', { d: client.planDay }) : ' · ' + t('ежемесячно')}`;
     if (client.planAmount2) {
-      const second = `${formatMoney(client.planAmount2, cur)}${client.planDay2 ? ` · до ${client.planDay2} числа` : ''}`;
-      return `Аванс: ${first} + Остаток: ${second}`;
+      const second = `${formatMoney(client.planAmount2, cur)}${client.planDay2 ? ' · ' + t('до {d} числа', { d: client.planDay2 }) : ''}`;
+      return t('Аванс: {a} + Остаток: {b}', { a: first, b: second });
     }
     return first;
   }
-  return `${formatMoney(client.planAmount, cur)}${client.planDate ? ` · до ${formatDateShort(client.planDate)}` : ''}`;
+  return `${formatMoney(client.planAmount, cur)}${client.planDate ? ' · ' + t('до {d}', { d: formatDateShort(client.planDate) }) : ''}`;
 }
 
 function renderClientsTable() {
   const el = document.getElementById('clientsTable');
   if (!state.clients.length) {
-    el.innerHTML = emptyStateHTML('Пока нет клиентов', 'Добавьте первого клиента, чтобы начать вести учёт', '+ Добавить клиента', 'empty-add-client');
+    el.innerHTML = emptyStateHTML(t('Пока нет клиентов'), t('Добавьте первого клиента, чтобы начать вести учёт'), t('+ Добавить клиента'), 'empty-add-client');
     return;
   }
   const rows = state.clients
@@ -1110,10 +1117,10 @@ function renderClientsTable() {
           <div class="row__avatar">${initials(client.name)}</div>
           <div class="clientCard__name">${escapeHTML(client.name)}</div>
           <div class="clientCard__actions">
-            <button class="iconbtn" title="Редактировать" data-action="edit-client" data-id="${client.id}">
+            <button class="iconbtn" title="${t('Редактировать')}" data-action="edit-client" data-id="${client.id}">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 20l.8-3.6L16 5.2a1.6 1.6 0 0 1 2.3 0l.5.5a1.6 1.6 0 0 1 0 2.3L7.6 19.2 4 20Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
             </button>
-            <button class="iconbtn iconbtn--danger" title="Удалить клиента" data-action="delete-client" data-id="${client.id}">
+            <button class="iconbtn iconbtn--danger" title="${t('Удалить клиента')}" data-action="delete-client" data-id="${client.id}">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m-9 0 1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
@@ -1139,18 +1146,18 @@ function openClientDetail(clientId) {
   document.getElementById('detailClientName').textContent = c.name;
 
   const typeBadge = c.type === 'recurring'
-    ? '<span class="badge badge--violet">Постоянный</span>'
-    : '<span class="badge badge--violet" style="background:#FFE8DE;color:#FF7A50;">Разовый</span>';
+    ? '<span class="badge badge--violet">' + t('Постоянный') + '</span>'
+    : '<span class="badge badge--violet" style="background:#FFE8DE;color:#FF7A50;">' + t('Разовый') + '</span>';
   const contractBadge = taxSettings.mode !== 'npd' ? ''
     : (c.contract && c.contract.enabled)
-    ? `<span class="badge badge--contract">Договор · ${c.contract.payerType === 'company' ? '6%' : '4%'}</span>`
-    : '<span class="badge badge--nocontract">Без договора</span>';
+    ? `<span class="badge badge--contract">${t('Договор')} · ${c.contract.payerType === 'company' ? '6%' : '4%'}</span>`
+    : '<span class="badge badge--nocontract">' + t('Без договора') + '</span>';
   document.getElementById('detailClientMeta').innerHTML = typeBadge + contractBadge;
 
   const planEl = document.getElementById('detailClientPlan');
   const planText = clientPlanLineText(c);
   planEl.hidden = !planText;
-  planEl.textContent = planText ? `По договорённости: ${planText}` : '';
+  planEl.textContent = planText ? t('По договорённости: {p}', { p: planText }) : '';
 
   const tasksEl = document.getElementById('detailClientTasks');
   tasksEl.hidden = !c.tasksDesc;
@@ -1166,7 +1173,7 @@ function renderDetailPayments() {
   const el = document.getElementById('detailPayments');
   el.innerHTML = payments.length
     ? payments.map(p => paymentRowHTML(p, { compact: true })).join('')
-    : '<div class="empty"><div class="empty__title">Пока нет задач</div><div class="empty__sub">Добавьте первую запись о платеже для этого клиента</div></div>';
+    : '<div class="empty"><div class="empty__title">' + t('Пока нет задач') + '</div><div class="empty__sub">' + t('Добавьте первую запись о платеже для этого клиента') + '</div></div>';
 }
 
 // ---------- Рендер: отчёты ----------
@@ -1233,7 +1240,7 @@ function monthlyIncomeChartSVG() {
     return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}"
                   stroke="var(--line)" stroke-width="1"/>
             <text x="${padL - 8}" y="${(y + 3.5).toFixed(1)}" text-anchor="end"
-                  class="chartTick">${new Intl.NumberFormat('ru-RU').format(Math.round(v))}</text>`;
+                  class="chartTick">${new Intl.NumberFormat(LOCALE).format(Math.round(v))}</text>`;
   }).join('');
 
   const bars = months.map((m, i) => {
@@ -1253,12 +1260,12 @@ function monthlyIncomeChartSVG() {
                class="chartValue">${formatMoney(m.sum)}</text>`
       : '';
     const name = `<text x="${(x + barW / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle"
-                        class="chartTick">${MONTHS_NOM[m.month].slice(0, 3).toLowerCase()}</text>`;
+                        class="chartTick">${(LANG === 'en' ? MONTHS_NOM[m.month].slice(0, 3) : MONTHS_NOM[m.month].slice(0, 3).toLowerCase())}</text>`;
     return bar + tip + name;
   }).join('');
 
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
-               aria-label="Доход по месяцам за последние 12 месяцев">${ticks}${bars}</svg>`;
+               aria-label="${t('Доход по месяцам за последние 12 месяцев')}">${ticks}${bars}</svg>`;
 }
 
 function renderReports() {
@@ -1289,7 +1296,7 @@ function renderReports() {
 
   document.getElementById('reportStats').innerHTML = `
     <div class="tile tile--dark">
-      <div class="tile__label">Получено за период</div>
+      <div class="tile__label">${t('Получено за период')}</div>
       <div class="tile__value">${formatMoney(grossAll)}</div>
     </div>
     ${noTax ? '' : `<div class="tile">
@@ -1297,7 +1304,7 @@ function renderReports() {
       <div class="tile__value">${formatMoney(taxAll)}</div>
     </div>
     <div class="tile">
-      <div class="tile__label" style="color:var(--muted)">Осталось на руки</div>
+      <div class="tile__label" style="color:var(--muted)">${t('Осталось на руки')}</div>
       <div class="tile__value">${formatMoney(netAll)}</div>
     </div>`}
   `;
@@ -1307,8 +1314,8 @@ function renderReports() {
   document.getElementById('reportChart').innerHTML = chart
     ? `<div class="chartCard">
          <div class="chartCard__head">
-           <span class="chartCard__title">Доход по месяцам</span>
-           <span class="chartCard__note">за последние ${chartSpan} месяцев</span>
+           <span class="chartCard__title">${t('Доход по месяцам')}</span>
+           <span class="chartCard__note">${t('за последние {n} месяцев', { n: chartSpan })}</span>
          </div>
          ${chart}
        </div>`
@@ -1320,31 +1327,31 @@ function renderReports() {
     tableEl.classList.toggle('is-notax', noTax);
     tableEl.innerHTML = `
       <div class="reportTableHead">
-        <span>Заказчик</span><span>Получено</span>${noTax ? '' : '<span>Налог</span><span>На руки</span>'}
+        <span>${t('Заказчик')}</span><span>${LANG === 'en' ? t('Gross') : t('Получено')}</span>${noTax ? '' : `<span>${t('Налог')}</span><span>${t('На руки')}</span>`}
       </div>
       ${rows.map(r => `
         <div class="reportRow">
           <div>
             <div class="reportRow__name">${escapeHTML(r.name)}</div>
-            <div class="reportRow__sub">${r.type === 'recurring' ? 'Постоянный' : 'Разовый'}</div>
+            <div class="reportRow__sub">${r.type === 'recurring' ? t('Постоянный') : t('Разовый')}</div>
           </div>
-          <div class="reportRow__num" data-label="Получено">${formatMoney(r.gross)}</div>
-          ${noTax ? '' : `<div class="reportRow__num" data-label="Налог">${formatMoney(r.tax)}</div>
-          <div class="reportRow__num" data-label="На руки">${formatMoney(r.gross - r.tax)}</div>`}
+          <div class="reportRow__num" data-label="${LANG === 'en' ? t('Gross') : t('Получено')}">${formatMoney(r.gross)}</div>
+          ${noTax ? '' : `<div class="reportRow__num" data-label="${t('Налог')}">${formatMoney(r.tax)}</div>
+          <div class="reportRow__num" data-label="${t('На руки')}">${formatMoney(r.gross - r.tax)}</div>`}
         </div>
       `).join('')}
     `;
   } else if (!everReceived) {
     // Частая причина пустого отчёта: платежи есть, но ни один не отмечен полученным
     tableEl.innerHTML = emptyStateHTML(
-      'Отчёт пока пустой',
-      'Сюда попадают только те платежи, которые вы отметили полученными. Отметьте оплату галочкой на дашборде — и суммы появятся здесь.',
+      t('Отчёт пока пустой'),
+      t('Сюда попадают только те платежи, которые вы отметили полученными. Отметьте оплату галочкой на дашборде — и суммы появятся здесь.'),
       '', ''
     );
   } else {
     tableEl.innerHTML = emptyStateHTML(
-      'За этот период поступлений не было',
-      'Выберите другой период кнопками выше.',
+      t('За этот период поступлений не было'),
+      t('Выберите другой период кнопками выше.'),
       '', ''
     );
   }
@@ -1424,8 +1431,8 @@ function scheduleReminders() {
         const money = formatMoney(p.amount, clientCurrency(c));
         const at1 = new Date(day); at1.setHours(REMIND_HOUR, 0, 0, 0);
         const at2 = new Date(at1); at2.setDate(at2.getDate() + 1);
-        if (at1.getTime() > now) list.push({ id: notifId(p.id, 1), at: at1, title: 'Сегодня ожидается поступление', body: `${c.name} · ${money} · ${p.task}` });
-        if (at2.getTime() > now) list.push({ id: notifId(p.id, 2), at: at2, title: 'Оплата не поступила', body: `${c.name} · ${money}. Отметьте получение или перенесите срок` });
+        if (at1.getTime() > now) list.push({ id: notifId(p.id, 1), at: at1, title: t('Сегодня ожидается поступление'), body: `${c.name} · ${money} · ${p.task}` });
+        if (at2.getTime() > now) list.push({ id: notifId(p.id, 2), at: at2, title: t('Оплата не поступила'), body: t('{c} · {m}. Отметьте получение или перенесите срок', { c: c.name, m: money }) });
       });
       list.sort((a, b) => a.at - b.at);
       const notifications = list.slice(0, REMIND_LIMIT).map(n => ({ id: n.id, title: n.title, body: n.body, schedule: { at: n.at } }));
@@ -1439,7 +1446,7 @@ function syncRemindersUI() {
   if (!row) return;
   row.hidden = !LocalNotif;
   const btn = document.getElementById('btnReminders');
-  if (btn) btn.textContent = remindersOn() ? 'Выключить' : 'Включить';
+  if (btn) btn.textContent = remindersOn() ? t('Выключить') : t('Включить');
 }
 
 document.getElementById('btnReminders')?.addEventListener('click', async () => {
@@ -1447,17 +1454,17 @@ document.getElementById('btnReminders')?.addEventListener('click', async () => {
   if (remindersOn()) {
     try { localStorage.setItem('freelab-reminders', '0'); } catch (e) {}
     syncRemindersUI(); scheduleReminders();
-    showToast('Напоминания выключены');
+    showToast(t('Напоминания выключены'));
     return;
   }
   try {
     let perm = await LocalNotif.checkPermissions();
     if (perm.display !== 'granted') perm = await LocalNotif.requestPermissions();
-    if (perm.display !== 'granted') { showToast('Разрешите уведомления в настройках телефона'); return; }
+    if (perm.display !== 'granted') { showToast(t('Разрешите уведомления в настройках телефона')); return; }
     localStorage.setItem('freelab-reminders', '1');
     syncRemindersUI(); scheduleReminders();
-    showToast('Напоминания включены');
-  } catch (e) { console.error(e); showToast('Не удалось включить напоминания'); }
+    showToast(t('Напоминания включены'));
+  } catch (e) { console.error(e); showToast(t('Не удалось включить напоминания')); }
 });
 
 function renderAll() {
@@ -1536,9 +1543,9 @@ function updatePlanDayLabel() {
   const isWeekly = document.getElementById('clientFrequency').value === 'weekly';
   const splitPay = document.getElementById('clientSplitPay').checked;
   const sym = currencySym(document.getElementById('clientCurrency').value);
-  document.getElementById('planAmountLabel').textContent = splitPay ? `Аванс, ${sym}` : `Плановая сумма, ${sym}`;
-  document.getElementById('planAmount2Label').textContent = `Зарплата/остаток, ${sym}`;
-  document.getElementById('planDayLabel').textContent = isWeekly ? 'День недели' : (splitPay ? 'День аванса' : 'День платежа');
+  document.getElementById('planAmountLabel').textContent = splitPay ? t('Аванс, {s}', { s: sym }) : t('Плановая сумма, {s}', { s: sym });
+  document.getElementById('planAmount2Label').textContent = t('Зарплата/остаток, {s}', { s: sym });
+  document.getElementById('planDayLabel').textContent = isWeekly ? t('День недели') : (splitPay ? t('День аванса') : t('День платежа'));
 }
 document.getElementById('clientSplitPay').addEventListener('change', e => setSplitPayUI(e.target.checked));
 document.querySelectorAll('#clientForm [data-freq]').forEach(opt => {
@@ -1599,7 +1606,7 @@ function openClientModal(editId) {
   document.getElementById('clientId').value = editId || '';
   if (editId) {
     const c = getClient(editId);
-    document.getElementById('clientModalTitle').textContent = 'Редактировать клиента';
+    document.getElementById('clientModalTitle').textContent = t('Редактировать клиента');
     document.getElementById('clientName').value = c.name;
     document.getElementById('clientTasks').value = c.tasksDesc || '';
     document.getElementById('clientCurrency').value = clientCurrency(c);
@@ -1618,7 +1625,7 @@ function openClientModal(editId) {
     // откроет карточку и не увидит своих же настроек
     setClientAdvancedOpen(clientUsesAdvanced(c));
   } else {
-    document.getElementById('clientModalTitle').textContent = 'Новый клиент';
+    document.getElementById('clientModalTitle').textContent = t('Новый клиент');
     setClientTypeUI('recurring');
     setFrequencyUI('monthly');
     setSplitPayUI(false);
@@ -1676,11 +1683,11 @@ clientForm.addEventListener('submit', async e => {
     paymentReturnDraft = null;
     closeModals();
     renderAll();
-    showToast(id ? 'Клиент обновлён' : 'Клиент добавлен');
+    showToast(id ? t('Клиент обновлён') : t('Клиент добавлен'));
     if (back) returnToPayment(back, savedClient.id);
   } catch (err) {
     console.error(err);
-    showToast('Не удалось сохранить клиента');
+    showToast(t('Не удалось сохранить клиента'));
   }
 });
 
@@ -1697,9 +1704,9 @@ function fillClientSelect(selectedId) {
   const current = selectedId || select.value;
   const options = state.clients
     .slice().sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-    .map(c => `<option value="${c.id}">${escapeHTML(c.name)}${c.type === 'recurring' ? ' · постоянный' : ' · разовый'}</option>`);
+    .map(c => `<option value="${c.id}">${escapeHTML(c.name)}${c.type === 'recurring' ? ' · ' + t('постоянный') : ' · ' + t('разовый')}</option>`);
   select.innerHTML =
-    `<option class="optAdd" value="${NEW_CLIENT_OPTION}">Новый клиент</option>` + options.join('');
+    `<option class="optAdd" value="${NEW_CLIENT_OPTION}">${t('Новый клиент')}</option>` + options.join('');
   if (current && current !== NEW_CLIENT_OPTION) select.value = current;
   else if (options.length) select.selectedIndex = 1; // не оставляем выбранным служебный пункт
   select.dataset.last = select.value;
@@ -1748,12 +1755,12 @@ function updateTaxPreview() {
   const rate = clientTaxRatePercent(c);
   const cur = clientCurrency(c);
   const sym = currencySym(cur);
-  document.getElementById('paymentAmountLabel').textContent = `Сумма, ${sym}`;
-  document.getElementById('paymentFactLabel').textContent = `Фактическая сумма, ${sym}`;
+  document.getElementById('paymentAmountLabel').textContent = t('Сумма, {s}', { s: sym });
+  document.getElementById('paymentFactLabel').textContent = t('Фактическая сумма, {s}', { s: sym });
   const el = document.getElementById('taxPreview');
   if (rate > 0 && amount > 0) {
     el.hidden = false;
-    el.textContent = `${taxName()} ${rate}%: ${formatMoney(amount * rate / 100, cur)} · на руки: ${formatMoney(amount - amount * rate / 100, cur)}`;
+    el.textContent = t('{tax} {rate}%: {t} · на руки: {n}', { tax: taxName(), rate, t: formatMoney(amount * rate / 100, cur), n: formatMoney(amount - amount * rate / 100, cur) });
   } else {
     el.hidden = true;
   }
@@ -1769,7 +1776,7 @@ document.getElementById('paymentFactDate').addEventListener('change', updateTaxP
 
 function openPaymentModal({ editId, presetClientId } = {}) {
   if (!state.clients.length) {
-    showToast('Сначала добавьте клиента');
+    showToast(t('Сначала добавьте клиента'));
     openClientModal();
     paymentReturnDraft = { editId: '', task: '', amount: '', planDate: '', factDate: '', factAmount: '' };
     return;
@@ -1783,7 +1790,7 @@ function openPaymentModal({ editId, presetClientId } = {}) {
 
   if (editId) {
     const p = state.payments.find(x => x.id === editId);
-    document.getElementById('paymentModalTitle').textContent = 'Редактировать запись';
+    document.getElementById('paymentModalTitle').textContent = t('Редактировать запись');
     document.getElementById('paymentClient').value = p.clientId;
     document.getElementById('paymentTask').value = p.task;
     document.getElementById('paymentAmount').value = p.amount;
@@ -1791,7 +1798,7 @@ function openPaymentModal({ editId, presetClientId } = {}) {
     document.getElementById('paymentFactDate').value = p.factDate || '';
     document.getElementById('paymentFactAmount').value = p.factAmount ?? '';
   } else {
-    document.getElementById('paymentModalTitle').textContent = 'Новая запись';
+    document.getElementById('paymentModalTitle').textContent = t('Новая запись');
   }
   updateTaxPreview();
   paymentModal.classList.add('is-open');
@@ -1835,7 +1842,7 @@ paymentForm.addEventListener('submit', async e => {
     renderAll();
     // Салют — на момент, когда деньги действительно отмечены полученными
     if (factDate && !wasPaid) celebrateAt(window.innerWidth / 2, window.innerHeight * 0.4);
-    showToast(id ? 'Запись обновлена' : 'Запись добавлена');
+    showToast(id ? t('Запись обновлена') : t('Запись добавлена'));
     // Заплатили меньше плана — предлагаем не потерять остаток. Спрашиваем один раз:
     // при повторном сохранении с той же суммой окно не всплывает снова
     const prevFact = prev ? prev.factAmount : null;
@@ -1844,7 +1851,7 @@ paymentForm.addEventListener('submit', async e => {
     }
   } catch (err) {
     console.error(err);
-    showToast('Не удалось сохранить запись');
+    showToast(t('Не удалось сохранить запись'));
   }
 });
 
@@ -1858,9 +1865,9 @@ function openRemainderModal(ctx) {
   const d = new Date(); d.setDate(d.getDate() + 7);
   document.getElementById('remainderDate').value = d.toISOString().slice(0, 10);
   const c = getClient(ctx.clientId);
-  document.getElementById('remainderClient').textContent = c ? c.name : 'Заказчик';
+  document.getElementById('remainderClient').textContent = c ? c.name : t('Заказчик');
   document.getElementById('remainderText').textContent =
-    `Получено меньше плана. Не хватает ${formatMoney(ctx.rest, clientCurrency(c))}.`;
+    t('Получено меньше плана. Не хватает {r}.', { r: formatMoney(ctx.rest, clientCurrency(c)) });
   remainderModal.classList.add('is-open');
   document.getElementById('remainderDate').focus();
 }
@@ -1873,7 +1880,7 @@ document.getElementById('remainderForm').addEventListener('submit', async e => {
   if (!planDate) return;
   // Ярлык «(остаток)» не совпадает с названиями, которые создаёт планировщик
   // для «Аванс / Остаток», поэтому эти записи не мешают друг другу
-  const label = /\(остаток\)$/.test(task) ? task : `${task} (остаток)`;
+  const label = /\((остаток|remainder)\)$/.test(task) ? task : `${task} (${t('остаток')})`;
   const draft = { clientId, task: label, amount: rest, planDate, factDate: null, factAmount: null, autoGenerated: false };
   try {
     const { data, error } = await sb.from('payments').insert(paymentToRow(draft)).select().single();
@@ -1882,10 +1889,10 @@ document.getElementById('remainderForm').addEventListener('submit', async e => {
     remainderCtx = null;
     closeModals();
     renderAll();
-    showToast('Остаток записан');
+    showToast(t('Остаток записан'));
   } catch (err) {
     console.error(err);
-    showToast('Не удалось записать остаток');
+    showToast(t('Не удалось записать остаток'));
   }
 });
 
@@ -1925,17 +1932,17 @@ document.addEventListener('click', async e => {
     closeModals();
     openPaymentModal({ editId: id });
   } else if (action === 'delete-payment') {
-    if (confirm('Удалить эту запись?')) {
+    if (confirm(t('Удалить эту запись?'))) {
       closeModals();
       try {
         const { error } = await sb.from('payments').delete().eq('id', id);
         if (error) throw error;
         state.payments = state.payments.filter(p => p.id !== id);
         renderAll();
-        showToast('Запись удалена');
+        showToast(t('Запись удалена'));
       } catch (err) {
         console.error(err);
-        showToast('Не удалось удалить запись');
+        showToast(t('Не удалось удалить запись'));
       }
     }
   } else if (action === 'edit-client') {
@@ -1955,10 +1962,8 @@ document.addEventListener('click', async e => {
     btn.disabled = true;
     try {
       await createDemoData();
-      showToast('Добавлен пример');
     } catch (err) {
       console.error(err);
-      showToast('Не удалось добавить пример');
     } finally {
       // Перерисовываем в любом случае: даже если часть шагов не прошла,
       // экран должен показывать то, что реально лежит в базе
@@ -1969,10 +1974,8 @@ document.addEventListener('click', async e => {
     btn.disabled = true;
     try {
       await removeDemoData();
-      showToast('Пример убран');
     } catch (err) {
       console.error(err);
-      showToast('Не удалось убрать пример');
     } finally {
       renderAll();
       btn.disabled = false;
@@ -1992,8 +1995,8 @@ document.addEventListener('click', async e => {
 async function deleteClientWithConfirm(id) {
   const hasPayments = state.payments.some(p => p.clientId === id);
   const msg = hasPayments
-    ? 'У этого клиента есть записи о платежах. Удалить клиента и все его записи?'
-    : 'Удалить этого клиента?';
+    ? t('У этого клиента есть записи о платежах. Удалить клиента и все его записи?')
+    : t('Удалить этого клиента?');
   if (confirm(msg)) {
     try {
       const { error } = await sb.from('clients').delete().eq('id', id);
@@ -2002,10 +2005,10 @@ async function deleteClientWithConfirm(id) {
       state.payments = state.payments.filter(p => p.clientId !== id);
       closeModals();
       renderAll();
-      showToast('Клиент удалён');
+      showToast(t('Клиент удалён'));
     } catch (err) {
       console.error(err);
-      showToast('Не удалось удалить клиента');
+      showToast(t('Не удалось удалить клиента'));
     }
   }
 }
@@ -2051,7 +2054,7 @@ const voiceBubbleText = document.getElementById('voiceBubbleText');
 let voiceRec = null;
 
 // Браузер не умеет распознавать речь (например, Firefox) — кнопку просто не показываем
-if (SpeechRec && btnVoice) btnVoice.hidden = false;
+if (SpeechRec && btnVoice && LANG === 'ru') btnVoice.hidden = false; // разбор фраз пока только русский
 
 function stopVoice() {
   if (voiceRec) { try { voiceRec.stop(); } catch (e) {} }
@@ -2059,12 +2062,12 @@ function stopVoice() {
 
 function startVoice() {
   if (!SpeechRec) return;
-  if (!state.clients.length) { showToast('Сначала добавьте клиента'); openClientModal(); return; }
+  if (!state.clients.length) { showToast(t('Сначала добавьте клиента')); openClientModal(); return; }
   if (voiceRec) { stopVoice(); return; } // повторное нажатие — закончить и разобрать сказанное
 
   const rec = new SpeechRec();
   voiceRec = rec;
-  rec.lang = 'ru-RU';
+  rec.lang = LOCALE;
   rec.interimResults = true;
   rec.continuous = false;
   rec.maxAlternatives = 1;
@@ -2072,7 +2075,7 @@ function startVoice() {
   let finalText = '', interim = '', failed = false;
   btnVoice.classList.add('is-listening');
   voiceBubble.hidden = false;
-  voiceBubbleText.textContent = 'Слушаю…';
+  voiceBubbleText.textContent = t('Слушаю…');
 
   rec.onresult = ev => {
     interim = '';
@@ -2080,16 +2083,16 @@ function startVoice() {
       const t = ev.results[i][0].transcript;
       if (ev.results[i].isFinal) finalText += t + ' '; else interim += t;
     }
-    voiceBubbleText.textContent = (finalText + interim).trim() || 'Слушаю…';
+    voiceBubbleText.textContent = (finalText + interim).trim() || t('Слушаю…');
   };
   rec.onerror = ev => {
     failed = true;
     if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') {
-      showToast('Нет доступа к микрофону. Разрешите его в настройках браузера.');
+      showToast(t('Нет доступа к микрофону. Разрешите его в настройках браузера.'));
     } else if (ev.error === 'no-speech') {
-      showToast('Ничего не услышала. Нажмите и попробуйте ещё раз.');
+      showToast(t('Ничего не услышала. Нажмите и попробуйте ещё раз.'));
     } else if (ev.error !== 'aborted') {
-      showToast('Не получилось распознать речь');
+      showToast(t('Не получилось распознать речь'));
     }
   };
   rec.onend = () => {
@@ -2097,7 +2100,7 @@ function startVoice() {
     btnVoice.classList.remove('is-listening');
     voiceBubble.hidden = true;
     const heard = (finalText + interim).trim();
-    if (!heard) { if (!failed) showToast('Ничего не услышала. Нажмите и попробуйте ещё раз.'); return; }
+    if (!heard) { if (!failed) showToast(t('Ничего не услышала. Нажмите и попробуйте ещё раз.')); return; }
     applyVoiceEntry(heard);
   };
   try { rec.start(); } catch (e) { voiceRec = null; btnVoice.classList.remove('is-listening'); voiceBubble.hidden = true; }
@@ -2108,7 +2111,7 @@ function applyVoiceEntry(heard) {
   openPaymentModal({ presetClientId: r.client ? r.client.id : undefined });
 
   const echo = document.getElementById('voiceEcho');
-  echo.textContent = `Вы сказали: «${heard}»`;
+  echo.textContent = t('Вы сказали: «{h}»', { h: heard });
   echo.hidden = false;
 
   const today = todayISO();
@@ -2123,14 +2126,14 @@ function applyVoiceEntry(heard) {
   const c = r.client;
   const task = r.task
     ? r.task.charAt(0).toUpperCase() + r.task.slice(1)
-    : (c && c.tasksDesc) ? c.tasksDesc : 'Платёж';
+    : (c && c.tasksDesc) ? c.tasksDesc : t('Платёж');
   document.getElementById('paymentTask').value = task;
   updateTaxPreview();
 
   const missing = [];
-  if (!r.client) missing.push('клиента');
-  if (!r.amount) missing.push('сумму');
-  if (missing.length) showToast(`Не поняла ${missing.join(' и ')} — проверьте поля`);
+  if (!r.client) missing.push(t('клиента'));
+  if (!r.amount) missing.push(t('сумму'));
+  if (missing.length) showToast(t('Не поняла {what} — проверьте поля', { what: missing.join(t(' и ')) }));
   // Курсор туда, где нужна правка: чаще всего это то, что не разобралось
   if (!r.client) document.getElementById('paymentClient').focus();
   else if (!r.amount) document.getElementById('paymentAmount').focus();
@@ -2190,7 +2193,7 @@ importFile.addEventListener('change', () => {
     try {
       const parsed = JSON.parse(reader.result);
       if (!Array.isArray(parsed.clients) || !Array.isArray(parsed.payments)) throw new Error('bad shape');
-      if (!confirm('Импорт заменит все текущие данные в облаке резервной копией из файла. Продолжить?')) return;
+      if (!confirm(t('Импорт заменит все текущие данные в облаке резервной копией из файла. Продолжить?'))) return;
 
       const clients = parsed.clients.map(normalizeClient);
       const payments = parsed.payments;
@@ -2219,10 +2222,10 @@ importFile.addEventListener('change', () => {
       }
 
       await fetchState();
-      showToast('Данные загружены');
+      showToast(t('Данные загружены'));
     } catch (err) {
       console.error(err);
-      alert('Не удалось прочитать файл или сохранить данные в облако. Убедитесь, что это резервная копия из Freelance.');
+      alert(t('Не удалось прочитать файл или сохранить данные в облако. Убедитесь, что это резервная копия из Freelance.'));
     }
   };
   reader.readAsText(file);
@@ -2230,7 +2233,7 @@ importFile.addEventListener('change', () => {
 });
 
 document.getElementById('btnReset').addEventListener('click', async () => {
-  if (confirm('Точно удалить всех клиентов и все платежи? Это действие необратимо.')) {
+  if (confirm(t('Точно удалить всех клиентов и все платежи? Это действие необратимо.'))) {
     try {
       const { data: existing, error: exErr } = await sb.from('clients').select('id');
       if (exErr) throw exErr;
@@ -2240,10 +2243,10 @@ document.getElementById('btnReset').addEventListener('click', async () => {
       }
       state = { clients: [], payments: [] };
       renderAll();
-      showToast('Все данные удалены');
+      showToast(t('Все данные удалены'));
     } catch (err) {
       console.error(err);
-      showToast('Не удалось удалить данные');
+      showToast(t('Не удалось удалить данные'));
     }
   }
 });
@@ -2285,13 +2288,13 @@ function applyUserIdentity(session) {
   const name = userDisplayName(session);
   const email = (session && session.user && session.user.email) || '';
   const hour = new Date().getHours();
-  const greet = hour < 6 ? 'Доброй ночи' : hour < 12 ? 'Доброе утро' : hour < 18 ? 'Добрый день' : 'Добрый вечер';
+  const greet = hour < 6 ? t('Доброй ночи') : hour < 12 ? t('Доброе утро') : hour < 18 ? t('Добрый день') : t('Добрый вечер');
 
   document.getElementById('greeting').textContent = name ? `${greet}, ${name}` : greet;
-  document.getElementById('todayLabel').textContent = `${todayLabel()} — вот как идут дела с клиентами`;
+  document.getElementById('todayLabel').textContent = t('{d} — вот как идут дела с клиентами', { d: todayLabel() });
 
   const nameEl = document.querySelector('.sidebar__name');
-  if (nameEl) nameEl.textContent = name || email.split('@')[0] || 'Профиль';
+  if (nameEl) nameEl.textContent = name || email.split('@')[0] || t('Профиль');
   const avatarEl = document.querySelector('.sidebar__footer .avatar');
   if (avatarEl) avatarEl.textContent = avatarInitials(name, email);
 
@@ -2322,6 +2325,15 @@ function syncTaxUI() {
   if (payerWrap && taxSettings.mode !== 'npd') payerWrap.hidden = true;
 }
 
+const langSelect = document.getElementById('langSelect');
+if (langSelect) {
+  langSelect.value = LANG;
+  langSelect.addEventListener('change', () => {
+    try { localStorage.setItem('freelab-lang', langSelect.value); } catch (e) {}
+    location.reload();
+  });
+}
+
 document.getElementById('mainCurrency')?.addEventListener('change', async e => {
   const code = e.target.value;
   try {
@@ -2331,11 +2343,11 @@ document.getElementById('mainCurrency')?.addEventListener('change', async e => {
     viewCurrencyTouched = false;
     readTaxSettings(currentSession);
     renderAll();
-    showToast('Основная валюта сохранена');
+    showToast(t('Основная валюта сохранена'));
   } catch (err) {
     console.error(err);
     e.target.value = mainCurrency;
-    showToast('Не удалось сохранить настройки');
+    showToast(t('Не удалось сохранить настройки'));
   }
 });
 
@@ -2347,7 +2359,7 @@ document.getElementById('taxForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const mode = document.getElementById('taxMode').value;
   const rate = Math.max(0, Math.min(100, Number(document.getElementById('taxRate').value) || 0));
-  if (mode === 'flat' && !rate) { showToast('Укажите ставку налога'); document.getElementById('taxRate').focus(); return; }
+  if (mode === 'flat' && !rate) { showToast(t('Укажите ставку налога')); document.getElementById('taxRate').focus(); return; }
   try {
     const { data, error } = await sb.auth.updateUser({ data: { tax: { mode, rate: mode === 'flat' ? rate : 0 } } });
     if (error) throw error;
@@ -2355,10 +2367,10 @@ document.getElementById('taxForm')?.addEventListener('submit', async e => {
     readTaxSettings(currentSession);
     syncTaxUI();
     renderAll();
-    showToast('Настройки налога сохранены');
+    showToast(t('Настройки налога сохранены'));
   } catch (err) {
     console.error(err);
-    showToast('Не удалось сохранить настройки');
+    showToast(t('Не удалось сохранить настройки'));
   }
 });
 
@@ -2372,10 +2384,10 @@ document.getElementById('profileForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   try {
     await saveDisplayName(document.getElementById('profileName').value.trim());
-    showToast('Имя сохранено');
+    showToast(t('Имя сохранено'));
   } catch (err) {
     console.error(err);
-    showToast('Не удалось сохранить имя');
+    showToast(t('Не удалось сохранить имя'));
   }
 });
 
@@ -2386,10 +2398,10 @@ document.getElementById('nameForm')?.addEventListener('submit', async e => {
   if (!name) return;
   try {
     await saveDisplayName(name);
-    showToast('Имя сохранено');
+    showToast(t('Имя сохранено'));
   } catch (err) {
     console.error(err);
-    showToast('Не удалось сохранить имя');
+    showToast(t('Не удалось сохранить имя'));
   }
 });
 
@@ -2453,18 +2465,18 @@ function setAuthMode(mode) {
   authForgotLink.hidden = mode === 'signup';
   const cardTitle = document.getElementById('authCardTitle');
   if (mode === 'signup') {
-    if (cardTitle) cardTitle.textContent = 'Регистрация';
-    authSubmitBtn.textContent = 'Зарегистрироваться';
-    authToggleBtn.textContent = 'Уже есть аккаунт? Войти';
+    if (cardTitle) cardTitle.textContent = t('Регистрация');
+    authSubmitBtn.textContent = t('Зарегистрироваться');
+    authToggleBtn.textContent = t('Уже есть аккаунт? Войти');
   } else if (mode === 'forgot') {
-    if (cardTitle) cardTitle.textContent = 'Сброс пароля';
-    authSubmitBtn.textContent = 'Отправить ссылку для сброса';
-    authForgotLink.textContent = 'Назад ко входу';
+    if (cardTitle) cardTitle.textContent = t('Сброс пароля');
+    authSubmitBtn.textContent = t('Отправить ссылку для сброса');
+    authForgotLink.textContent = t('Назад ко входу');
   } else {
-    if (cardTitle) cardTitle.textContent = 'Вход';
-    authSubmitBtn.textContent = 'Войти';
-    authToggleBtn.textContent = 'Нет аккаунта? Зарегистрироваться';
-    authForgotLink.textContent = 'Забыли пароль?';
+    if (cardTitle) cardTitle.textContent = t('Вход');
+    authSubmitBtn.textContent = t('Войти');
+    authToggleBtn.textContent = t('Нет аккаунта? Зарегистрироваться');
+    authForgotLink.textContent = t('Забыли пароль?');
   }
 }
 
@@ -2490,7 +2502,7 @@ function setAuthMode(mode) {
     setInterval(cycle, CYCLE);
   }
   // На узком экране строка не помещается в одну — оставляем только главное
-  const setFoot = () => { if (foot) foot.textContent = window.innerWidth < 900 ? '3 заказчика' : '3 заказчика · налог 5 940 ₽'; };
+  const setFoot = () => { if (foot) foot.textContent = window.innerWidth < 900 ? t('3 заказчика') : t('3 заказчика · налог 5 940 ₽'); };
   setFoot();
   window.addEventListener('resize', setFoot);
 
@@ -2534,14 +2546,15 @@ authForm.addEventListener('submit', async e => {
         redirectTo: window.location.origin + window.location.pathname,
       });
       if (error) throw error;
-      setNotice(authErrorEl, 'Если такой e-mail зарегистрирован, на него отправлена ссылка для сброса пароля.', 'ok');
+      setNotice(authErrorEl, t('Если такой e-mail зарегистрирован, на него отправлена ссылка для сброса пароля.'), 'ok');
     } else if (authMode === 'signup') {
       const password = authPasswordInput.value;
       const { data, error } = await sb.auth.signUp({ email, password });
       if (error) throw error;
       if (!data.session) {
-        setAuthMode('signin');
-        setNotice(authErrorEl, 'Проверьте почту и подтвердите e-mail, затем войдите.', 'ok');
+        // Подтверждение почты отключено, но на всякий случай входим сразу
+        const { error: inErr } = await sb.auth.signInWithPassword({ email, password });
+        if (inErr) throw inErr;
       }
     } else {
       const password = authPasswordInput.value;
@@ -2560,25 +2573,19 @@ authForm.addEventListener('submit', async e => {
 function authErrorText(err) {
   const raw = (err && err.message) ? err.message : '';
   const m = raw.toLowerCase();
-  // Порядок важен: «for security purposes» тоже приходит с кодом 429,
-  // но означает короткую паузу в секундах, а не часовой лимит на письма
-  if (m.includes('for security purposes'))
-    return 'Слишком часто. Попробуйте ещё раз через минуту.';
-  if (m.includes('rate limit') || err?.status === 429)
-    return 'Слишком много писем за короткое время. Подождите час и попробуйте снова.';
+  //   if (m.includes('for security purposes') || m.includes('rate limit') || err?.status === 429)
+    return t('Слишком часто. Попробуйте ещё раз через минуту.');
   if (m.includes('invalid login credentials'))
-    return 'Неверный e-mail или пароль';
-  if (m.includes('email not confirmed'))
-    return 'E-mail ещё не подтверждён. Откройте письмо и перейдите по ссылке из него.';
+    return t('Неверный e-mail или пароль');
   if (m.includes('already registered') || m.includes('already been registered'))
-    return 'Такой e-mail уже зарегистрирован. Попробуйте войти или восстановить пароль.';
+    return t('Такой e-mail уже зарегистрирован. Попробуйте войти или восстановить пароль.');
   if (m.includes('password should be at least'))
-    return 'Пароль должен быть не короче 6 символов';
+    return t('Пароль должен быть не короче 6 символов');
   if (m.includes('unable to validate email') || m.includes('invalid format'))
-    return 'Проверьте адрес e-mail — похоже, в нём опечатка';
+    return t('Проверьте адрес e-mail — похоже, в нём опечатка');
   if (m.includes('failed to fetch') || m.includes('network'))
-    return 'Нет связи с сервером. Проверьте интернет и попробуйте снова.';
-  return raw || 'Не удалось выполнить вход';
+    return t('Нет связи с сервером. Проверьте интернет и попробуйте снова.');
+  return raw || t('Не удалось выполнить вход');
 }
 
 recoveryForm.addEventListener('submit', async e => {
@@ -2590,7 +2597,7 @@ recoveryForm.addEventListener('submit', async e => {
     const { error } = await sb.auth.updateUser({ password });
     if (error) throw error;
     recoveryMode = false;
-    showToast('Пароль обновлён');
+    showToast(t('Пароль обновлён'));
     const { data } = await sb.auth.getSession();
     if (data.session) showApp(data.session); else showAuth();
   } catch (err) {

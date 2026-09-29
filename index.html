@@ -16,7 +16,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="css/fonts.css?v=1">
-<link rel="stylesheet" href="css/styles.css?v=46">
+<link rel="stylesheet" href="css/styles.css?v=47">
 <script src="js/vendor/supabase.js?v=1"></script>
 </head>
 <body>
@@ -740,6 +740,14 @@
           </span>
           <span class="setRow__control"><button class="btn btn--outline btn--small" id="btnThemeMobile">Переключить</button></span>
         </div>
+        <div class="setRow">
+          <span class="setRow__icon setRow__icon--theme"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.4" stroke="currentColor" stroke-width="1.9"/><path d="M3.6 12h16.8M12 3.6c2.4 2.4 3.4 5.2 3.4 8.4s-1 6-3.4 8.4c-2.4-2.4-3.4-5.2-3.4-8.4s1-6 3.4-8.4Z" stroke="currentColor" stroke-width="1.9"/></svg></span>
+          <span class="setRow__text">
+            <span class="setRow__name">Язык</span>
+            <span class="setRow__hint">Русский или английский</span>
+          </span>
+          <span class="setRow__control"><select id="langSelect" class="setSelect"><option value="ru">Русский</option><option value="en">English</option></select></span>
+        </div>
         </div>
 
         <div class="setGroup">
@@ -985,7 +993,6 @@
     <div class="modal__head">
       <h2>Как вас зовут?</h2>
     </div>
-    <p class="modalHint">Имя видите только вы — в приветствии на главной. Его можно изменить в настройках.</p>
     <form id="nameForm">
       <label class="field">
         <span>Имя</span>
@@ -1031,7 +1038,8 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="js/i18n.js?v=2"></script>
 <script src="js/voice.js?v=1"></script>
-<script src="js/app.js?v=46"></script>
+<script src="js/app.js?v=47"></script>
 </body>
 </html>
