@@ -351,7 +351,8 @@ function computeScheduledOccurrences(client, fromISO, toISO_) {
     const start = new Date(fromISO + 'T00:00:00');
     const end = new Date(toISO_ + 'T00:00:00');
     let y = start.getFullYear(), m = start.getMonth();
-    const task = client.planAmount2 ? t('Аванс') : t('Плановый платёж');
+    // В базе название всегда русское (это ключ для защиты от дублей), переводится при показе
+    const task = client.planAmount2 ? 'Аванс' : 'Плановый платёж';
     while (y < end.getFullYear() || (y === end.getFullYear() && m <= end.getMonth())) {
       const date = dateForDayInMonth(y, m, client.planDay);
       if (date >= fromISO && date <= toISO_) out.push({ planDate: date, amount: client.planAmount, task });
@@ -365,7 +366,7 @@ function computeScheduledOccurrences(client, fromISO, toISO_) {
     let y = start.getFullYear(), m = start.getMonth();
     while (y < end.getFullYear() || (y === end.getFullYear() && m <= end.getMonth())) {
       const date = dateForDayInMonth(y, m, client.planDay2);
-      if (date >= fromISO && date <= toISO_) out.push({ planDate: date, amount: client.planAmount2, task: t('Остаток') });
+      if (date >= fromISO && date <= toISO_) out.push({ planDate: date, amount: client.planAmount2, task: 'Остаток' });
       m++;
       if (m > 11) { m = 0; y++; }
     }
@@ -791,10 +792,10 @@ function renderPaymentsCalendar() {
       const shown = dayPayments.slice(0, 2);
       chips = shown.map(p => {
         const client = getClient(p.clientId);
-        const name = client ? client.name : p.task;
+        const name = client ? client.name : t(p.task);
         // В подсказке — назначение платежа: в один день у клиента может быть
         // и аванс, и остаток, и по имени с суммой их не различить
-        const hint = `${name} · ${p.task} · ${formatMoney(amountOf(p), payCur(p))}`;
+        const hint = `${name} · ${t(p.task)} · ${formatMoney(amountOf(p), payCur(p))}`;
         return `<div class="chip chip--${deriveStatus(p)}" title="${escapeHTML(hint)}">${escapeHTML(name)} · ${formatMoney(amountOf(p), payCur(p))}</div>`;
       }).join('');
       if (dayPayments.length > shown.length) {
@@ -812,12 +813,12 @@ function renderPaymentsCalendar() {
       const weekday = WEEKDAY_SHORT[(new Date(year, month, day).getDay() + 6) % 7];
       const items = dayPayments.map(p => {
         const client = getClient(p.clientId);
-        const name = client ? client.name : p.task;
+        const name = client ? client.name : t(p.task);
         return `<div class="agendaItem">
           <span class="agendaDot agendaDot--${deriveStatus(p)}"></span>
           <span class="agendaItem__text">
             <span class="agendaItem__name">${escapeHTML(name)}</span>
-            <span class="agendaItem__task">${escapeHTML(p.task)}</span>
+            <span class="agendaItem__task">${escapeHTML(t(p.task))}</span>
           </span>
           <span class="agendaItem__amount">${formatMoney(amountOf(p), payCur(p))}</span>
         </div>`;
@@ -895,8 +896,8 @@ async function createDemoData() {
   // Три записи, чтобы сразу были видны все статусы: оплачено, ожидается, просрочено.
   // У плановых стоит признак автосоздания — тогда генератор графика не продублирует их.
   const demoPayments = [
-    { client_id: inserted[0].id, task: t('Плановый платёж'), amount: 15000, plan_date: soon, fact_date: null, auto_generated: true },
-    { client_id: inserted[1].id, task: t('Плановый платёж'), amount: 6000, plan_date: paid, fact_date: paid, auto_generated: true },
+    { client_id: inserted[0].id, task: 'Плановый платёж', amount: 15000, plan_date: soon, fact_date: null, auto_generated: true },
+    { client_id: inserted[1].id, task: 'Плановый платёж', amount: 6000, plan_date: paid, fact_date: paid, auto_generated: true },
     { client_id: inserted[2].id, task: t('Лендинг под ключ'), amount: 20000, plan_date: late, fact_date: null, auto_generated: false },
   ];
   const { error: pErr } = await sb.from('payments').insert(demoPayments);
@@ -1005,12 +1006,12 @@ function paymentRowHTML(payment, opts = {}) {
 
   const leftHTML = opts.compact
     ? `<div>
-        <div class="row__title">${escapeHTML(payment.task)}</div>
+        <div class="row__title">${escapeHTML(t(payment.task))}</div>
       </div>`
     : `<div class="row__avatar" style="background:${color.bg}; color:${color.fg};">${initials(client.name)}</div>
       <div>
         <div class="row__title">${escapeHTML(client.name)}</div>
-        <div class="row__sub">${escapeHTML(payment.task)}</div>
+        <div class="row__sub">${escapeHTML(t(payment.task))}</div>
       </div>
       ${client.type === 'recurring' ? `<span class="badge badge--violet">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M17 2.1l4 4-4 4M7 21.9l-4-4 4-4M21 6.1H8a4 4 0 0 0-4 4v2M3 17.9h13a4 4 0 0 0 4-4v-2" stroke="#6C3CE9" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1431,7 +1432,7 @@ function scheduleReminders() {
         const money = formatMoney(p.amount, clientCurrency(c));
         const at1 = new Date(day); at1.setHours(REMIND_HOUR, 0, 0, 0);
         const at2 = new Date(at1); at2.setDate(at2.getDate() + 1);
-        if (at1.getTime() > now) list.push({ id: notifId(p.id, 1), at: at1, title: t('Сегодня ожидается поступление'), body: `${c.name} · ${money} · ${p.task}` });
+        if (at1.getTime() > now) list.push({ id: notifId(p.id, 1), at: at1, title: t('Сегодня ожидается поступление'), body: `${c.name} · ${money} · ${t(p.task)}` });
         if (at2.getTime() > now) list.push({ id: notifId(p.id, 2), at: at2, title: t('Оплата не поступила'), body: t('{c} · {m}. Отметьте получение или перенесите срок', { c: c.name, m: money }) });
       });
       list.sort((a, b) => a.at - b.at);
@@ -2125,7 +2126,7 @@ function applyVoiceEntry(heard) {
   }
   const c = r.client;
   const task = r.task
-    ? r.task.charAt(0).toUpperCase() + r.task.slice(1)
+    ? t(r.task).charAt(0).toUpperCase() + t(r.task).slice(1)
     : (c && c.tasksDesc) ? c.tasksDesc : t('Платёж');
   document.getElementById('paymentTask').value = task;
   updateTaxPreview();

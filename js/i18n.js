@@ -7,7 +7,8 @@ const LANG = (() => {
     const saved = localStorage.getItem('freelab-lang');
     if (saved === 'ru' || saved === 'en') return saved;
   } catch (e) {}
-  return String(navigator.language || 'ru').toLowerCase().startsWith('ru') ? 'ru' : 'en';
+  // Пока основной рынок — русскоязычный: английский включается только вручную в настройках
+  return 'ru';
 })();
 const LOCALE = LANG === 'en' ? 'en-GB' : 'ru-RU';
 
