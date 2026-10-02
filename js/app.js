@@ -1150,7 +1150,7 @@ function openClientDetail(clientId) {
 
   const typeBadge = c.type === 'recurring'
     ? '<span class="badge badge--violet">' + t('Постоянный') + '</span>'
-    : '<span class="badge badge--violet" style="background:#FFE8DE;color:#FF7A50;">' + t('Разовый') + '</span>';
+    : '<span class="badge badge--oneoff">' + t('Разовый') + '</span>';
   const contractBadge = taxSettings.mode !== 'npd' ? ''
     : (c.contract && c.contract.enabled)
     ? `<span class="badge badge--contract">${t('Договор')} · ${c.contract.payerType === 'company' ? '6%' : '4%'}</span>`
@@ -1495,6 +1495,9 @@ document.querySelectorAll('.navlink').forEach(btn => {
     const view = btn.dataset.view;
     document.querySelectorAll('.view').forEach(v => v.classList.remove('is-active'));
     document.getElementById(`view-${view}`).classList.add('is-active');
+    // Кнопки «добавить» и «продиктовать» нужны там, где есть что добавлять:
+    // на настройках и в отчёте они только закрывают собой текст
+    document.body.dataset.view = view;
   });
 });
 

@@ -1029,22 +1029,7 @@ button, input, select, textarea { font-family: inherit; }
   letter-spacing: .07em; text-transform: uppercase; color: var(--muted-2);
   padding: 15px 20px 9px;
 }
-.setRow {
-  display: flex; align-items: center; justify-content: space-between; gap: 20px;
-  padding: 14px 20px; border-top: 1px solid var(--line);
-}
-.setRow__text { min-width: 0; }
-.setRow__name { font-size: 14px; font-weight: 700; }
-.setRow__hint { font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
-.setRow__control { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
-.setRow--danger .setRow__name { color: var(--red); }
-.setRow .profileForm input { flex: 0 1 190px; padding: 8px 12px; font-size: 13.5px; }
-
-@media (max-width: 620px) {
-  .setRow { flex-direction: column; align-items: stretch; gap: 10px; }
-  .setRow__control { justify-content: flex-start; flex-wrap: wrap; }
-  .setRow .profileForm input { flex: 1 1 auto; }
-}
+/* Сами строки настроек описаны ниже, в разделе «НАСТРОЙКИ: компактно, со значками» */
 
 /* ============ ГРАФИК ДОХОДА ============ */
 .chartCard {
@@ -1125,9 +1110,13 @@ button, input, select, textarea { font-family: inherit; }
 .setRow__icon .lid { transition: transform .3s cubic-bezier(.2,.8,.3,1); }
 
 @media (max-width: 620px) {
-  .setRow { flex-wrap: wrap; }
+  .setRow { flex-wrap: wrap; align-items: flex-start; }
+  .setRow__icon { margin-top: 1px; }
+  .setRow__text { flex: 1 1 160px; }
   .setRow__control { width: 100%; padding-left: 47px; }
+  .setRow .profileForm { width: 100%; }
   .setRow .profileForm input { flex: 1 1 auto; }
+  .setRow .setSelect, .setRow select { max-width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .setRow__icon svg, .setRow__icon .lid { transition: none; }
@@ -1149,6 +1138,8 @@ button, input, select, textarea { font-family: inherit; }
   box-shadow: 0 20px 44px -12px rgba(192,97,255,1), 0 2px 8px rgba(0,0,0,.25);
 }
 .fab:active { transform: translateY(0) scale(.97); }
+/* В настройках и отчёте добавлять нечего — плавающие кнопки только мешают читать */
+body[data-view="settings"] .fab, body[data-view="reports"] .fab { display: none; }
 .fab svg { transition: transform .3s cubic-bezier(.2,.8,.3,1); }
 .fab:hover svg { transform: rotate(90deg); }
 .fab:focus-visible { outline: 2.5px solid var(--violet); outline-offset: 3px; }
