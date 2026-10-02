@@ -2626,8 +2626,50 @@ const introCtl = (function () {
   if (!intro) return { play() {}, stop() {} };
   const scenes = [...intro.querySelectorAll('.iScene')];
   const segs = [...intro.querySelectorAll('.introBar span')];
-  const DUR = [3800, 5000, 5400, 7000]; // вдвое медленнее; последняя дольше — рука рисуется долго
-  let idx = -1, timer = null, running = false;
+  const DUR = [3800, 5200, 5800, 6400]; // последняя дольше — на ней считаются итоги
+  let idx = -1, timer = null, running = false, fxToken = 0;
+  // Печать цифр и счётчики: оживляют инфографику сцены
+  const nf = new Intl.NumberFormat(LOCALE);
+  function runFx(scene, token) {
+    const alive = () => scene.classList.contains('is-on') && fxToken === token;
+    scene.querySelectorAll('[data-count]').forEach(el => {
+      const to = +el.dataset.count, delay = +(el.dataset.cd || 0), dur = +(el.dataset.cdur || 1400);
+      el.textContent = nf.format(0);
+      setTimeout(() => {
+        const t0 = performance.now();
+        (function tick(now) {
+          if (!alive()) return;
+          const k = Math.min(1, (now - t0) / dur);
+          el.textContent = nf.format(Math.round(to * (1 - Math.pow(1 - k, 3))));
+          if (k < 1) requestAnimationFrame(tick);
+        })(t0);
+      }, delay);
+    });
+    scene.querySelectorAll('[data-type]').forEach(el => {
+      const full = el.dataset.type, delay = +(el.dataset.td || 0), dur = +(el.dataset.tdur || 800);
+      const caret = !!el.dataset.caret;
+      el.textContent = '';
+      setTimeout(() => {
+        const step = dur / full.length;
+        let i = 0;
+        (function next() {
+          if (!alive()) return;
+          i++;
+          el.textContent = full.slice(0, i) + (caret ? '\u258F' : '');
+          if (i < full.length) { setTimeout(next, step); return; }
+          if (caret) {
+            let on = true;
+            (function blink() {
+              if (!alive()) return;
+              el.textContent = full + (on ? '\u258F' : '');
+              on = !on;
+              setTimeout(blink, 520);
+            })();
+          }
+        })();
+      }, delay);
+    });
+  }
 
   function stop() {
     if (!running) return;
@@ -2641,6 +2683,7 @@ const introCtl = (function () {
     if (n >= scenes.length) { stop(); return; }
     idx = n;
     scenes.forEach((s, k) => s.classList.toggle('is-on', k === n));
+    runFx(scenes[n], ++fxToken);
     segs.forEach((s, k) => {
       s.classList.toggle('is-past', k < n);
       s.classList.remove('is-on');
