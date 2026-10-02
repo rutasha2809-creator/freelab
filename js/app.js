@@ -8,7 +8,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 /** @typedef {{
  *   id:string, name:string, type:'recurring'|'oneoff', tasksDesc:string,
  *   planAmount:number|null, planDay:number|null, planDate:string|null,
- *   contract:{enabled:boolean, payerType:'individual'|'company'},
+ *   contract:{enabled:boolean, payerType:'individual'|'company'},  // enabled — старое поле, равно payerType==='company'
  *   createdAt:string
  * }} Client */
 /** @typedef {{id:string, clientId:string, task:string, amount:number, planDate:string, factDate:string|null, factAmount:number|null, createdAt:string}} Payment */
@@ -463,7 +463,7 @@ function amountOf(p) {
   return Number(p.amount) || 0;
 }
 
-// Налоговый режим пользователя: 'npd' — самозанятый РФ (4% с физлиц и 6% с юрлиц по «договору»),
+// Налоговый режим пользователя: 'npd' — самозанятый РФ (4% с физлиц, 6% с компаний и ИП),
 // 'flat' — один свой процент со всех поступлений, 'none' — налог не считаем.
 // Хранится в профиле пользователя (user_metadata.tax), поэтому одинаков на всех устройствах.
 let taxSettings = { mode: 'npd', rate: 0 };
@@ -487,8 +487,8 @@ function clientTaxRatePercent(client) {
   if (!client) return 0;
   if (taxSettings.mode === 'none') return 0;
   if (taxSettings.mode === 'flat') return taxSettings.rate;
-  if (!client.contract || !client.contract.enabled) return 0;
-  return client.contract.payerType === 'company' ? 6 : 4;
+  // Ставка НПД зависит только от того, кто заказчик: физлицо — 4%, компания или ИП — 6%
+  return client.contract && client.contract.payerType === 'company' ? 6 : 4;
 }
 function paymentTax(payment) {
   const c = getClient(payment.clientId);
@@ -703,15 +703,7 @@ function renderStats() {
 function renderTaxForecast() {
   const el = document.getElementById('taxForecast');
   if (taxSettings.mode === 'none') { el.innerHTML = ''; return; }
-  const hasContractClients = taxSettings.mode === 'flat'
-    ? state.clients.length > 0
-    : state.clients.some(c => c.contract && c.contract.enabled);
-  if (!hasContractClients) {
-    el.innerHTML = `<div class="forecastBand--empty">
-      <span>${t('Отметьте клиента «по договору», чтобы видеть здесь прогноз дохода и налога НПД за месяц')}</span>
-    </div>`;
-    return;
-  }
+  if (!state.clients.length) { el.innerHTML = ''; return; }
   const f = computeTaxForecast();
   // Доходы больше не делим на договорные и прочие: налог считается по карточкам
   // клиентов с договором, а «на руки» — это весь доход месяца за вычетом налога
@@ -1152,9 +1144,7 @@ function openClientDetail(clientId) {
     ? '<span class="badge badge--violet">' + t('Постоянный') + '</span>'
     : '<span class="badge badge--oneoff">' + t('Разовый') + '</span>';
   const contractBadge = taxSettings.mode !== 'npd' ? ''
-    : (c.contract && c.contract.enabled)
-    ? `<span class="badge badge--contract">${t('Договор')} · ${c.contract.payerType === 'company' ? '6%' : '4%'}</span>`
-    : '<span class="badge badge--nocontract">' + t('Без договора') + '</span>';
+    : `<span class="badge badge--contract">${c.contract && c.contract.payerType === 'company' ? t('Компания или ИП · 6%') : t('Физическое лицо · 4%')}</span>`;
   document.getElementById('detailClientMeta').innerHTML = typeBadge + contractBadge;
 
   const planEl = document.getElementById('detailClientPlan');
@@ -1558,12 +1548,10 @@ document.querySelectorAll('#clientForm [data-freq]').forEach(opt => {
   opt.addEventListener('click', () => setFrequencyUI(opt.dataset.freq));
 });
 
-function setClientContractUI(enabled) {
-  document.getElementById('clientContract').value = enabled ? '1' : '0';
-  document.querySelectorAll('#clientForm [data-contract]').forEach(o => {
-    o.classList.toggle('is-active', (o.dataset.contract === '1') === enabled);
-  });
-  document.getElementById('payerTypeWrap').hidden = !enabled || taxSettings.mode !== 'npd';
+// Выбор ставки НПД нужен только самозанятым РФ: в других режимах поле скрыто
+function syncPayerTypeVisibility() {
+  const wrap = document.getElementById('payerTypeWrap');
+  if (wrap) wrap.hidden = taxSettings.mode !== 'npd';
 }
 
 // Редко нужные настройки спрятаны: простой случай — четыре поля, сложный по-прежнему доступен
@@ -1595,9 +1583,6 @@ function setPayerTypeUI(type) {
 document.querySelectorAll('#clientForm [data-type]').forEach(opt => {
   opt.addEventListener('click', () => setClientTypeUI(opt.dataset.type));
 });
-document.querySelectorAll('#clientForm [data-contract]').forEach(opt => {
-  opt.addEventListener('click', () => setClientContractUI(opt.dataset.contract === '1'));
-});
 document.querySelectorAll('#clientForm [data-payer]').forEach(opt => {
   opt.addEventListener('click', () => setPayerTypeUI(opt.dataset.payer));
 });
@@ -1625,7 +1610,6 @@ function openClientModal(editId) {
     setClientTypeUI(c.type);
     setFrequencyUI(c.type === 'recurring' && c.planFrequency === 'weekly' ? 'weekly' : 'monthly');
     setSplitPayUI(c.type === 'recurring' && c.planFrequency !== 'weekly' && (c.planAmount2 != null || c.planDay2 != null));
-    setClientContractUI(!!(c.contract && c.contract.enabled));
     setPayerTypeUI(c.contract && c.contract.payerType === 'company' ? 'company' : 'individual');
     // Если у клиента уже настроено что-то из скрытого, раскрываем — иначе человек
     // откроет карточку и не увидит своих же настроек
@@ -1635,10 +1619,10 @@ function openClientModal(editId) {
     setClientTypeUI('recurring');
     setFrequencyUI('monthly');
     setSplitPayUI(false);
-    setClientContractUI(false);
     setPayerTypeUI('individual');
     setClientAdvancedOpen(false);
   }
+  syncPayerTypeVisibility();
   clientModal.classList.add('is-open');
   document.getElementById('clientName').focus();
 }
@@ -1663,8 +1647,9 @@ clientForm.addEventListener('submit', async e => {
     ? Number(document.getElementById('clientPlanAmount2').value) : null;
   const planDay2 = splitPay && document.getElementById('clientPlanDay2').value
     ? Number(document.getElementById('clientPlanDay2').value) : null;
-  const contractEnabled = document.getElementById('clientContract').value === '1';
   const payerType = document.getElementById('clientPayerType').value;
+  // Старое поле «по договору» оставлено в базе и просто повторяет тип заказчика
+  const contractEnabled = payerType === 'company';
   if (!name) return;
 
   const draft = { name, type, tasksDesc, planAmount, planDay, planFrequency, planWeekday, planDate, planAmount2, planDay2, currency: document.getElementById('clientCurrency').value, contract: { enabled: contractEnabled, payerType } };
@@ -2324,11 +2309,7 @@ function syncTaxUI() {
   const rateEl = document.getElementById('taxRate');
   rateEl.value = taxSettings.rate || '';
   rateEl.hidden = taxSettings.mode !== 'flat';
-  // Поля «по договору / кто платит» в карточке клиента нужны только самозанятым РФ
-  const contractField = document.getElementById('clientContract')?.closest('label');
-  if (contractField) contractField.hidden = taxSettings.mode !== 'npd';
-  const payerWrap = document.getElementById('payerTypeWrap');
-  if (payerWrap && taxSettings.mode !== 'npd') payerWrap.hidden = true;
+  syncPayerTypeVisibility();
 }
 
 const langSelect = document.getElementById('langSelect');

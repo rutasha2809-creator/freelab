@@ -16,7 +16,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="css/fonts.css?v=1">
-<link rel="stylesheet" href="css/styles.css?v=53">
+<link rel="stylesheet" href="css/styles.css?v=54">
 <script src="js/vendor/supabase.js?v=1"></script>
 </head>
 <body data-view="dashboard">
@@ -611,20 +611,11 @@
         </label>
       </div>
 
-      <label class="field">
-        <span>Форма отношений</span>
-        <div class="segmented">
-          <button type="button" class="segmented__opt is-active" data-contract="0">Без договора</button>
-          <button type="button" class="segmented__opt" data-contract="1">По договору</button>
-        </div>
-        <input type="hidden" id="clientContract" value="0">
-      </label>
-
       <div class="field" id="payerTypeWrap" hidden>
-        <span>Кто платит (ставка налога НПД)</span>
+        <span>Кто заказчик (ставка НПД)</span>
         <div class="segmented">
-          <button type="button" class="segmented__opt is-active" data-payer="individual">Физ. лицо · 4%</button>
-          <button type="button" class="segmented__opt" data-payer="company">Юр. лицо / ИП · 6%</button>
+          <button type="button" class="segmented__opt is-active" data-payer="individual">Физическое лицо · 4%</button>
+          <button type="button" class="segmented__opt" data-payer="company">Компания или ИП · 6%</button>
         </div>
         <input type="hidden" id="clientPayerType" value="individual">
       </div>
@@ -794,8 +785,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/i18n.js?v=4"></script>
+<script src="js/i18n.js?v=5"></script>
 <script src="js/voice.js?v=1"></script>
-<script src="js/app.js?v=53"></script>
+<script src="js/app.js?v=54"></script>
 </body>
 </html>
