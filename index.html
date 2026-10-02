@@ -16,7 +16,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="css/fonts.css?v=1">
-<link rel="stylesheet" href="css/styles.css?v=54">
+<link rel="stylesheet" href="css/styles.css?v=55">
 <script src="js/vendor/supabase.js?v=1"></script>
 </head>
 <body data-view="dashboard">
@@ -590,7 +590,7 @@
       <div class="field-row">
         <label class="field">
           <span id="planAmountLabel">Плановая сумма, ₽</span>
-          <input type="number" id="clientPlanAmount" min="0" step="1" placeholder="0">
+          <input type="number" id="clientPlanAmount" min="0" step="0.01" inputmode="decimal" placeholder="0">
         </label>
         <label class="field" id="planDayWrap">
           <span id="planDayLabel">День платежа</span>
@@ -643,7 +643,7 @@
       <div class="field-row" id="splitPayFields" hidden>
         <label class="field">
           <span id="planAmount2Label">Зарплата/остаток, ₽</span>
-          <input type="number" id="clientPlanAmount2" min="0" step="1" placeholder="0">
+          <input type="number" id="clientPlanAmount2" min="0" step="0.01" inputmode="decimal" placeholder="0">
         </label>
         <label class="field">
           <span>День выплаты остатка</span>
@@ -708,7 +708,7 @@
       <div class="field-row">
         <label class="field">
           <span id="paymentAmountLabel">Сумма, ₽</span>
-          <input type="number" id="paymentAmount" required min="0" step="1" placeholder="0">
+          <input type="number" id="paymentAmount" required min="0" step="0.01" inputmode="decimal" placeholder="0">
         </label>
         <label class="field">
           <span>Плановая дата</span>
@@ -723,7 +723,7 @@
         </label>
         <label class="field">
           <span id="paymentFactLabel">Фактическая сумма, ₽</span>
-          <input type="number" id="paymentFactAmount" min="0" step="1" placeholder="как в плане">
+          <input type="number" id="paymentFactAmount" min="0" step="0.01" inputmode="decimal" placeholder="как в плане">
         </label>
       </div>
       <div class="modal__actions">
@@ -787,6 +787,6 @@
 
 <script src="js/i18n.js?v=5"></script>
 <script src="js/voice.js?v=1"></script>
-<script src="js/app.js?v=54"></script>
+<script src="js/app.js?v=55"></script>
 </body>
 </html>

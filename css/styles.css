@@ -1612,3 +1612,15 @@ body[data-view="settings"] .fab, body[data-view="reports"] .fab { display: none;
 
 /* Ничего не должно выходить за ширину экрана телефона */
 html, body { max-width: 100%; overflow-x: hidden; }
+
+/* ---- Телефоны и планшеты: облегчённые эффекты ----
+   Размытие фона под карточками, зернистый слой с наложением и плывущие пятна
+   на мобильных видеокартах дают подёргивания при прокрутке и съедают батарею.
+   Вид почти тот же: пятна остаются, но стоят на месте, карточки чуть плотнее */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+  .grain { display: none; }
+  .aurora span { mix-blend-mode: normal; animation: none; }
+  *, *::before, *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  :root[data-theme="dark"] { --paper: rgba(26,21,44,.78); --glass: rgba(14,12,26,.9); }
+  :root:not([data-theme="dark"]) { --paper: rgba(255,255,255,.86); }
+}
