@@ -16,7 +16,7 @@
   } catch (e) {}
 </script>
 <link rel="stylesheet" href="css/fonts.css?v=1">
-<link rel="stylesheet" href="css/styles.css?v=56">
+<link rel="stylesheet" href="css/styles.css?v=57">
 <script src="js/vendor/supabase.js?v=1"></script>
 </head>
 <body data-view="dashboard">
@@ -447,16 +447,11 @@
         <div class="setRow">
           <span class="setRow__icon setRow__icon--tax"><svg viewBox="0 0 24 24" fill="none"><path d="M6 19L18 5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="7.6" cy="7.6" r="2.4" stroke="currentColor" stroke-width="1.9"/><circle cx="16.4" cy="16.4" r="2.4" stroke="currentColor" stroke-width="1.9"/></svg></span>
           <span class="setRow__text">
-            <span class="setRow__name">Как считать налог</span>
+            <span class="setRow__name">Ставка по умолчанию</span>
             <span class="setRow__hint">Влияет на суммы «на руки» и налоговый прогноз</span>
           </span>
-          <span class="setRow__control"><form id="taxForm" class="profileForm">
-            <select id="taxMode">
-              <option value="npd">Самозанятый в России (НПД 4% и 6%)</option>
-              <option value="flat">Свой процент</option>
-              <option value="none">Не считать налог</option>
-            </select>
-            <input type="number" id="taxRate" min="0" max="100" step="0.1" placeholder="Ставка, %" hidden>
+          <span class="setRow__control"><form id="taxForm" class="profileForm profileForm--rate">
+            <input type="number" id="taxDefaultRate" min="0" max="100" step="0.1" inputmode="decimal" placeholder="Ставка, %">
             <button type="submit" class="btn btn--outline btn--small">Сохранить</button>
           </form></span>
         </div>
@@ -611,15 +606,10 @@
         </label>
       </div>
 
-      <div class="field" id="payerTypeWrap" hidden>
-        <span>Кто заказчик (ставка НПД)</span>
-        <div class="segmented segmented--three">
-          <button type="button" class="segmented__opt is-active" data-payer="individual">Физическое лицо · 4%</button>
-          <button type="button" class="segmented__opt" data-payer="company">Компания или ИП · 6%</button>
-          <button type="button" class="segmented__opt" data-payer="none">Без налога · 0%</button>
-        </div>
-        <input type="hidden" id="clientPayerType" value="individual">
-      </div>
+      <label class="field field--rate">
+        <span>Ставка налога, %</span>
+        <input type="number" id="clientTaxRate" min="0" max="100" step="0.1" inputmode="decimal" placeholder="0">
+      </label>
 
       <button type="button" class="advToggle" id="clientAdvToggle" aria-expanded="false">
         <svg class="advToggle__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -786,8 +776,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/i18n.js?v=6"></script>
+<script src="js/i18n.js?v=7"></script>
 <script src="js/voice.js?v=1"></script>
-<script src="js/app.js?v=57"></script>
+<script src="js/app.js?v=58"></script>
 </body>
 </html>

@@ -1625,5 +1625,8 @@ html, body { max-width: 100%; overflow-x: hidden; }
   :root:not([data-theme="dark"]) { --paper: rgba(255,255,255,.86); }
 }
 
-/* Выбор ставки НПД из трёх вариантов — столбиком: в ряд длинные надписи ломаются на несколько строк */
-.segmented--three { flex-direction: column; }
+/* Поля ставки налога: число из 1–5 знаков, широкое поле не нужно */
+.field--rate input { max-width: 160px; }
+.profileForm--rate { flex-wrap: nowrap; }
+.setRow .profileForm--rate input { flex: 0 0 96px; width: 96px; }
+@media (max-width: 620px) { .setRow .profileForm--rate input { flex: 0 0 140px; width: 140px; } }
