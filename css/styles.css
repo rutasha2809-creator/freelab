@@ -1624,3 +1624,6 @@ html, body { max-width: 100%; overflow-x: hidden; }
   :root[data-theme="dark"] { --paper: rgba(26,21,44,.78); --glass: rgba(14,12,26,.9); }
   :root:not([data-theme="dark"]) { --paper: rgba(255,255,255,.86); }
 }
+
+/* Выбор ставки НПД из трёх вариантов — столбиком: в ряд длинные надписи ломаются на несколько строк */
+.segmented--three { flex-direction: column; }

@@ -159,6 +159,7 @@ const EN = {
  "Кто заказчик (ставка НПД)": "Who your client is (tax rate)",
  "Физическое лицо · 4%": "Individual · 4%",
  "Компания или ИП · 6%": "Company or individual entrepreneur · 6%",
+ "Без налога · 0%": "No tax · 0%",
  "Налог НПД": "Professional income tax",
  "Налог": "Tax",
  "Получено": "Received",

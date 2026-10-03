@@ -8,7 +8,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 /** @typedef {{
  *   id:string, name:string, type:'recurring'|'oneoff', tasksDesc:string,
  *   planAmount:number|null, planDay:number|null, planDate:string|null,
- *   contract:{enabled:boolean, payerType:'individual'|'company'},  // enabled — старое поле, равно payerType==='company'
+ *   contract:{enabled:boolean, payerType:'individual'|'company'|'none'},  // enabled — старое поле, равно payerType==='company'
  *   createdAt:string
  * }} Client */
 /** @typedef {{id:string, clientId:string, task:string, amount:number, planDate:string, factDate:string|null, factAmount:number|null, createdAt:string}} Payment */
@@ -27,7 +27,7 @@ function normalizeClient(c) {
     planAmount2: c.planAmount2 != null ? Number(c.planAmount2) : null,
     planDay2: c.planDay2 != null ? Number(c.planDay2) : null,
     contract: c.contract && typeof c.contract === 'object'
-      ? { enabled: !!c.contract.enabled, payerType: c.contract.payerType === 'company' ? 'company' : 'individual' }
+      ? { enabled: !!c.contract.enabled, payerType: ['company', 'none'].includes(c.contract.payerType) ? c.contract.payerType : 'individual' }
       : { enabled: false, payerType: 'individual' },
     currency: CURRENCIES[c.currency] ? c.currency : mainCurrency,
     isDemo: !!c.isDemo,
@@ -529,8 +529,11 @@ function clientTaxRatePercent(client) {
   if (!client) return 0;
   if (taxSettings.mode === 'none') return 0;
   if (taxSettings.mode === 'flat') return taxSettings.rate;
-  // Ставка НПД зависит только от того, кто заказчик: физлицо — 4%, компания или ИП — 6%
-  return client.contract && client.contract.payerType === 'company' ? 6 : 4;
+  // Ставка НПД зависит только от того, кто заказчик: физлицо — 4%, компания или ИП — 6%,
+  // а поступления, с которых налог не платится (например, переводы на карту), — 0%
+  const payer = client.contract && client.contract.payerType;
+  if (payer === 'none') return 0;
+  return payer === 'company' ? 6 : 4;
 }
 function paymentTax(payment) {
   const c = getClient(payment.clientId);
@@ -1186,6 +1189,8 @@ function openClientDetail(clientId) {
     ? '<span class="badge badge--violet">' + t('Постоянный') + '</span>'
     : '<span class="badge badge--oneoff">' + t('Разовый') + '</span>';
   const contractBadge = taxSettings.mode !== 'npd' ? ''
+    : (c.contract && c.contract.payerType === 'none')
+    ? `<span class="badge badge--nocontract">${t('Без налога · 0%')}</span>`
     : `<span class="badge badge--contract">${c.contract && c.contract.payerType === 'company' ? t('Компания или ИП · 6%') : t('Физическое лицо · 4%')}</span>`;
   document.getElementById('detailClientMeta').innerHTML = typeBadge + contractBadge;
 
@@ -1653,7 +1658,7 @@ function openClientModal(editId) {
     setClientTypeUI(c.type);
     setFrequencyUI(c.type === 'recurring' && c.planFrequency === 'weekly' ? 'weekly' : 'monthly');
     setSplitPayUI(c.type === 'recurring' && c.planFrequency !== 'weekly' && (c.planAmount2 != null || c.planDay2 != null));
-    setPayerTypeUI(c.contract && c.contract.payerType === 'company' ? 'company' : 'individual');
+    setPayerTypeUI(c.contract && ['company', 'none'].includes(c.contract.payerType) ? c.contract.payerType : 'individual');
     // Если у клиента уже настроено что-то из скрытого, раскрываем — иначе человек
     // откроет карточку и не увидит своих же настроек
     setClientAdvancedOpen(clientUsesAdvanced(c));
