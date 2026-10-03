@@ -2722,7 +2722,6 @@ const introCtl = (function () {
     clearTimeout(timer); timer = null;
     document.removeEventListener('keydown', onKey);
     intro.classList.add('is-done');
-    try { localStorage.setItem('freelab-intro-seen', '1'); } catch (e) {}
     setTimeout(() => { intro.hidden = true; intro.classList.remove('is-done'); }, 700);
   }
   function show(n) {
@@ -2763,18 +2762,20 @@ const introCtl = (function () {
   return { play, stop, isRunning: () => running };
 })();
 
-// Заставка — знакомство с приложением. Показываем её, пока человек её не видел
-// и ни разу не входил; дальше приложение открывается сразу
-const INTRO_SEEN_KEY = 'freelab-intro-seen';
-function introAlreadySeen() {
+// Заставка — знакомство с приложением для тех, кто ещё не зарегистрировался:
+// она идёт при каждом запуске, пока человек ни разу не вошёл в аккаунт.
+// После первого входа приложение открывается сразу
+const REGISTERED_KEY = 'freelab-registered';
+function userHasRegistered() {
   try {
-    if (localStorage.getItem(INTRO_SEEN_KEY)) return true;
+    if (localStorage.getItem(REGISTERED_KEY)) return true;
     return Object.keys(localStorage).some(k => /^sb-.+-auth-token$/.test(k));
   } catch (e) { return false; }
 }
-if (!introAlreadySeen()) introCtl.play();
+if (!userHasRegistered()) introCtl.play();
 
 function showApp(session) {
+  try { localStorage.setItem('freelab-registered', '1'); } catch (e) {}
   authScreenEl.hidden = true;
   appEl.hidden = false;
   authForm.hidden = false;
