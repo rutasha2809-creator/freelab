@@ -1255,19 +1255,20 @@ function setReportPreset(preset) {
 
 // Столбики дохода по месяцам за год. Одна серия — легенда не нужна,
 // заголовок и так говорит, что показано. Подписываем только самый крупный месяц.
-function monthlyIncomeChartSVG() {
-  const now = new Date();
-  // На узком экране двенадцать столбиков сжимаются так, что подписи становятся
-  // нечитаемыми — показываем полгода и уже́ холст, тогда текст остаётся крупным
+// График строится ровно за выбранный в отчёте период: квартал — три столбика, год — двенадцать.
+// Если период укладывается в один месяц, график не нужен: всё видно в плитках сверху
+function monthlyIncomeChartSVG(fromISO, toISO_) {
   const narrow = window.innerWidth < 640;
-  const span = narrow ? 6 : 12;
+  const start = new Date(fromISO + 'T00:00:00');
+  const end = new Date(toISO_ + 'T00:00:00');
   const months = [];
-  for (let i = span - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+  for (let d = new Date(start.getFullYear(), start.getMonth(), 1); d <= end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
     months.push({ year: d.getFullYear(), month: d.getMonth(), sum: 0 });
   }
+  if (months.length < 2) return '';
   state.payments.forEach(p => {
     if (!p.factDate || !inView(p)) return;
+    if (p.factDate < fromISO || p.factDate > toISO_) return;
     const d = new Date(p.factDate + 'T00:00:00');
     const slot = months.find(m => m.year === d.getFullYear() && m.month === d.getMonth());
     if (slot) slot.sum += amountOf(p);
@@ -1282,7 +1283,11 @@ function monthlyIncomeChartSVG() {
   const max = Math.ceil(rawMax / step) * step || 1;
 
   const band = plotW / months.length;
-  const barW = Math.min(24, band - 10);          // столбик не заполняет всю полосу
+  const barW = Math.max(2, Math.min(24, band - 10, band * 0.7)); // столбик не заполняет всю полосу
+  // Если месяцев много, подписываем не каждый, иначе подписи налезают друг на друга
+  const labelEvery = Math.max(1, Math.ceil(months.length / (narrow ? 6 : 12)));
+  const multiYear = months[0].year !== months[months.length - 1].year;
+  let lastLabelYear = null;
   const maxIdx = months.reduce((b, m, i) => (m.sum > months[b].sum ? i : b), 0);
 
   const ticks = [0, max / 2, max].map(v => {
@@ -1309,13 +1314,19 @@ function monthlyIncomeChartSVG() {
       ? `<text x="${(x + barW / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" text-anchor="middle"
                class="chartValue">${formatMoney(m.sum)}</text>`
       : '';
-    const name = `<text x="${(x + barW / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle"
-                        class="chartTick">${(LANG === 'en' ? MONTHS_NOM[m.month].slice(0, 3) : MONTHS_NOM[m.month].slice(0, 3).toLowerCase())}</text>`;
+    const short = LANG === 'en' ? MONTHS_NOM[m.month].slice(0, 3) : MONTHS_NOM[m.month].slice(0, 3).toLowerCase();
+    // На стыке лет добавляем год к первой подписи нового года, чтобы «мар» не путался с прошлогодним
+    const shown = i % labelEvery === 0;
+    const withYear = multiYear && shown && m.year !== lastLabelYear ? `${short} ’${String(m.year).slice(2)}` : short;
+    if (shown) lastLabelYear = m.year;
+    const name = shown
+      ? `<text x="${(x + barW / 2).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="chartTick">${withYear}</text>`
+      : '';
     return bar + tip + name;
   }).join('');
 
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
-               aria-label="${t('Доход по месяцам за последние 12 месяцев')}">${ticks}${bars}</svg>`;
+               aria-label="${t('Доход по месяцам')}">${ticks}${bars}</svg>`;
 }
 
 function renderReports() {
@@ -1359,13 +1370,11 @@ function renderReports() {
     </div>`}
   `;
 
-  const chart = monthlyIncomeChartSVG();
-  const chartSpan = window.innerWidth < 640 ? 6 : 12;
+  const chart = monthlyIncomeChartSVG(from, to);
   document.getElementById('reportChart').innerHTML = chart
     ? `<div class="chartCard">
          <div class="chartCard__head">
            <span class="chartCard__title">${t('Доход по месяцам')}</span>
-           <span class="chartCard__note">${t('за последние {n} месяцев', { n: chartSpan })}</span>
          </div>
          ${chart}
        </div>`
