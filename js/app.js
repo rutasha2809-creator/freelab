@@ -419,10 +419,12 @@ function computeScheduledOccurrences(client, fromISO, toISO_) {
 // Строки недостающих автосозданных платежей клиента на горизонт вперёд
 // (уже существующие, в т.ч. добавленные вручную, не трогаем)
 function scheduleRowsFor(client) {
-  if (client.endedAt || client.type !== 'recurring' || !client.planAmount) return [];
+  if (client.type !== 'recurring' || !client.planAmount) return [];
   const from = todayISO();
   const to = addMonthsHorizonISO(from, SCHEDULE_HORIZON_MONTHS);
-  const occurrences = computeScheduledOccurrences(client, from, to);
+  // После даты прекращения сотрудничества платежи не планируем (сама дата уже не входит)
+  const occurrences = computeScheduledOccurrences(client, from, to)
+    .filter(o => !client.endedAt || o.planDate < client.endedAt);
   if (!occurrences.length) return [];
 
   // Учитываем ВСЕ записи клиента на эту дату, а не только автосозданные:
@@ -462,8 +464,8 @@ async function syncAllSchedules() {
 
 // Удаляет ещё не наступившие и не оплаченные автосозданные платежи клиента
 // (используется перед пересборкой графика после изменения условий в карточке)
-async function clearFutureAutoPayments(clientId) {
-  const from = todayISO();
+async function clearFutureAutoPayments(clientId, fromISO) {
+  const from = fromISO || todayISO();
   const { error } = await sb.from('payments')
     .delete()
     .eq('client_id', clientId)
@@ -1194,25 +1196,38 @@ function renderClientsTable() {
 
 let endedSectionOpen = false;
 
-// Завершить сотрудничество: заказчик и вся история остаются, убираются только ожидаемые автоплатежи
-async function endClientWithConfirm(id) {
+// Завершить сотрудничество: заказчик сразу уходит в «Завершённые», история остаётся,
+// а ожидаемые автоплатежи убираются начиная с выбранной даты (до неё они остаются в графике)
+function endClientWithConfirm(id) {
   const c = getClient(id);
   if (!c || c.endedAt) return;
-  if (!confirm(t('Завершить сотрудничество с заказчиком?') + '\n\n' + t('История платежей сохранится. Ожидаемые будущие платежи будут убраны. Сотрудничество можно возобновить в любой момент.'))) return;
+  closeModals();
+  document.getElementById('endClientId').value = id;
+  document.getElementById('endClientDate').value = todayISO();
+  document.getElementById('endClientModal').classList.add('is-open');
+}
+
+document.getElementById('endClientForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('endClientId').value;
+  const endedAt = document.getElementById('endClientDate').value;
+  const c = getClient(id);
+  if (!c || !endedAt) return;
+  const btn = e.submitter || document.querySelector('#endClientForm [type=submit]');
+  btn.disabled = true;
   try {
-    const endedAt = todayISO();
     const { error } = await sb.from('clients').update({ ended_at: endedAt }).eq('id', id);
     if (error) throw error;
     c.endedAt = endedAt;
-    await clearFutureAutoPayments(id);
+    await clearFutureAutoPayments(id, endedAt);
     closeModals();
     renderAll();
     showToast(t('Сотрудничество завершено'));
   } catch (err) {
     console.error(err);
     showToast(t('Не удалось сохранить клиента'));
-  }
-}
+  } finally { btn.disabled = false; }
+});
 
 async function resumeClient(id) {
   const c = getClient(id);
