@@ -1630,3 +1630,19 @@ html, body { max-width: 100%; overflow-x: hidden; }
 .profileForm--rate { flex-wrap: nowrap; }
 .setRow .profileForm--rate input { flex: 0 0 96px; width: 96px; }
 @media (max-width: 620px) { .setRow .profileForm--rate input { flex: 0 0 140px; width: 140px; } }
+
+/* ============ Завершённые заказчики ============ */
+.clientCard--ended { opacity: .72; }
+.clientCard--ended .row__avatar { filter: grayscale(1); }
+.clientCard__endedNote { display: block; font-weight: 500; font-size: 12px; color: var(--muted, #8a8a95); margin-top: 2px; }
+.badge--ended { background: var(--line); color: var(--muted, #8a8a95); }
+.endedHead {
+  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 10px 4px; background: none; border: 0; border-top: 1px solid var(--line);
+  color: inherit; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.endedHead__chev { transition: transform .2s ease; }
+.endedHead.is-open .endedHead__chev { transform: rotate(180deg); }
+#clientDetailModal .modal__actions--split { flex-wrap: wrap; justify-content: flex-start; gap: 8px 10px; }
+#clientDetailModal .modal__actions--split .btn { flex: 1 1 auto; white-space: normal; }
+.clientCard__endedNote { white-space: normal; overflow: visible; text-overflow: clip; }

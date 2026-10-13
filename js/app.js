@@ -34,6 +34,7 @@ function normalizeClient(c) {
       ? Math.max(0, Math.min(100, Number(c.taxRate))) : null,
     currency: CURRENCIES[c.currency] ? c.currency : mainCurrency,
     isDemo: !!c.isDemo,
+    endedAt: c.endedAt || null,   // дата завершения сотрудничества; null — работаем
     createdAt: c.createdAt || todayISO(),
   };
 }
@@ -57,6 +58,7 @@ function rowToClient(row) {
     taxRate: row.tax_rate,
     currency: row.currency,
     isDemo: !!row.is_demo,
+    endedAt: row.ended_at || null,
     createdAt: row.created_at,
   });
 }
@@ -417,7 +419,7 @@ function computeScheduledOccurrences(client, fromISO, toISO_) {
 // Строки недостающих автосозданных платежей клиента на горизонт вперёд
 // (уже существующие, в т.ч. добавленные вручную, не трогаем)
 function scheduleRowsFor(client) {
-  if (client.type !== 'recurring' || !client.planAmount) return [];
+  if (client.endedAt || client.type !== 'recurring' || !client.planAmount) return [];
   const from = todayISO();
   const to = addMonthsHorizonISO(from, SCHEDULE_HORIZON_MONTHS);
   const occurrences = computeScheduledOccurrences(client, from, to);
@@ -1156,26 +1158,77 @@ function renderClientsTable() {
     el.innerHTML = emptyStateHTML(t('Пока нет клиентов'), t('Добавьте первого клиента, чтобы начать вести учёт'), t('+ Добавить клиента'), 'empty-add-client');
     return;
   }
-  const rows = state.clients
-    .slice()
-    .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-    .map(client => {
-      return `
-        <article class="clientCard" data-client-id="${client.id}">
+  const byName = (a, b) => a.name.localeCompare(b.name, 'ru');
+  const cardHTML = client => {
+    const ended = !!client.endedAt;
+    const endIcon = ended
+      ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12a7 7 0 1 0 2.3-5.2M5 4v4h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M9.5 9.5h5v5h-5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+    const endTitle = ended ? t('Возобновить') : t('Завершить сотрудничество');
+    return `
+        <article class="clientCard${ended ? ' clientCard--ended' : ''}" data-client-id="${client.id}">
           <div class="row__avatar">${initials(client.name)}</div>
-          <div class="clientCard__name">${escapeHTML(client.name)}</div>
+          <div class="clientCard__name">${escapeHTML(client.name)}${ended ? `<span class="clientCard__endedNote">${t('Сотрудничество завершено')}</span>` : ''}</div>
           <div class="clientCard__actions">
             <button class="iconbtn" title="${t('Редактировать')}" data-action="edit-client" data-id="${client.id}">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 20l.8-3.6L16 5.2a1.6 1.6 0 0 1 2.3 0l.5.5a1.6 1.6 0 0 1 0 2.3L7.6 19.2 4 20Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
             </button>
+            <button class="iconbtn" title="${endTitle}" aria-label="${endTitle}" data-action="${ended ? 'resume-client' : 'end-client'}" data-id="${client.id}">${endIcon}</button>
             <button class="iconbtn iconbtn--danger" title="${t('Удалить клиента')}" data-action="delete-client" data-id="${client.id}">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2m-9 0 1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
           </div>
         </article>
       `;
-    }).join('');
+  };
+  const active = state.clients.filter(c => !c.endedAt).sort(byName);
+  const endedList = state.clients.filter(c => c.endedAt).sort(byName);
+  let rows = active.map(cardHTML).join('');
+  if (endedList.length) {
+    rows += `<button type="button" class="endedHead${endedSectionOpen ? ' is-open' : ''}" data-action="toggle-ended" aria-expanded="${endedSectionOpen}">
+        <span>${t('Завершённые')} · ${endedList.length}</span><span class="endedHead__chev">▾</span></button>`;
+    if (endedSectionOpen) rows += endedList.map(cardHTML).join('');
+  }
   el.innerHTML = rows;
+}
+
+let endedSectionOpen = false;
+
+// Завершить сотрудничество: заказчик и вся история остаются, убираются только ожидаемые автоплатежи
+async function endClientWithConfirm(id) {
+  const c = getClient(id);
+  if (!c || c.endedAt) return;
+  if (!confirm(t('Завершить сотрудничество с заказчиком?') + '\n\n' + t('История платежей сохранится. Ожидаемые будущие платежи будут убраны. Сотрудничество можно возобновить в любой момент.'))) return;
+  try {
+    const endedAt = todayISO();
+    const { error } = await sb.from('clients').update({ ended_at: endedAt }).eq('id', id);
+    if (error) throw error;
+    c.endedAt = endedAt;
+    await clearFutureAutoPayments(id);
+    closeModals();
+    renderAll();
+    showToast(t('Сотрудничество завершено'));
+  } catch (err) {
+    console.error(err);
+    showToast(t('Не удалось сохранить клиента'));
+  }
+}
+
+async function resumeClient(id) {
+  const c = getClient(id);
+  if (!c || !c.endedAt) return;
+  try {
+    const { error } = await sb.from('clients').update({ ended_at: null }).eq('id', id);
+    if (error) throw error;
+    c.endedAt = null;
+    await syncClientSchedule(c);
+    closeModals();
+    renderAll();
+    showToast(t('Сотрудничество возобновлено'));
+  } catch (err) {
+    console.error(err);
+    showToast(t('Не удалось сохранить клиента'));
+  }
 }
 
 function escapeHTML(s) {
@@ -1202,7 +1255,11 @@ function openClientDetail(clientId) {
     : clientRate > 0
     ? `<span class="badge badge--contract">${t('Налог')} · ${rateText}%</span>`
     : `<span class="badge badge--nocontract">${t('Без налога · 0%')}</span>`;
-  document.getElementById('detailClientMeta').innerHTML = typeBadge + contractBadge;
+  const endedBadge = c.endedAt ? `<span class="badge badge--ended">${t('Сотрудничество завершено')}</span>` : '';
+  document.getElementById('detailClientMeta').innerHTML = typeBadge + contractBadge + endedBadge;
+  document.getElementById('btnDetailAddPayment').hidden = !!c.endedAt;
+  const endBtn = document.getElementById('btnDetailEndClient');
+  endBtn.textContent = c.endedAt ? t('Возобновить') : t('Завершить сотрудничество');
 
   const planEl = document.getElementById('detailClientPlan');
   const planText = clientPlanLineText(c);
@@ -1753,6 +1810,7 @@ function fillClientSelect(selectedId) {
   const select = document.getElementById('paymentClient');
   const current = selectedId || select.value;
   const options = state.clients
+    .filter(c => !c.endedAt || c.id === current)
     .slice().sort((a, b) => a.name.localeCompare(b.name, 'ru'))
     .map(c => `<option value="${c.id}">${escapeHTML(c.name)}${c.type === 'recurring' ? ' · ' + t('постоянный') : ' · ' + t('разовый')}</option>`);
   select.innerHTML =
@@ -1825,7 +1883,7 @@ document.getElementById('paymentFactAmount').addEventListener('input', updateTax
 document.getElementById('paymentFactDate').addEventListener('change', updateTaxPreview);
 
 function openPaymentModal({ editId, presetClientId } = {}) {
-  if (!state.clients.length) {
+  if (!state.clients.some(c => !c.endedAt) && !editId) {
     showToast(t('Сначала добавьте клиента'));
     openClientModal();
     paymentReturnDraft = { editId: '', task: '', amount: '', planDate: '', factDate: '', factAmount: '' };
@@ -1834,7 +1892,8 @@ function openPaymentModal({ editId, presetClientId } = {}) {
   paymentForm.reset();
   const echoEl = document.getElementById('voiceEcho');
   if (echoEl) echoEl.hidden = true;
-  fillClientSelect(presetClientId);
+  const editedPay = editId ? state.payments.find(x => x.id === editId) : null;
+  fillClientSelect(presetClientId || (editedPay && editedPay.clientId));
   document.getElementById('paymentId').value = editId || '';
   document.getElementById('paymentPlanDate').value = todayISO();
 
@@ -2018,6 +2077,13 @@ document.addEventListener('click', async e => {
     openClientModal(id);
   } else if (action === 'delete-client') {
     deleteClientWithConfirm(id);
+  } else if (action === 'end-client') {
+    endClientWithConfirm(id);
+  } else if (action === 'resume-client') {
+    resumeClient(id);
+  } else if (action === 'toggle-ended') {
+    endedSectionOpen = !endedSectionOpen;
+    renderClientsTable();
   } else if (action === 'add-payment-for') {
     openPaymentModal({ presetClientId: id });
   } else if (action === 'empty-add-client') {
@@ -2065,7 +2131,9 @@ async function deleteClientWithConfirm(id) {
   const msg = hasPayments
     ? t('У этого клиента есть записи о платежах. Удалить клиента и все его записи?')
     : t('Удалить этого клиента?');
-  if (confirm(msg)) {
+  const target = getClient(id);
+  const hint = target && !target.endedAt ? '\n\n' + t('Чтобы сохранить историю платежей, лучше завершить сотрудничество.') : '';
+  if (confirm(msg + hint)) {
     try {
       const { error } = await sb.from('clients').delete().eq('id', id);
       if (error) throw error;
@@ -2130,7 +2198,7 @@ function stopVoice() {
 
 function startVoice() {
   if (!SpeechRec) return;
-  if (!state.clients.length) { showToast(t('Сначала добавьте клиента')); openClientModal(); return; }
+  if (!state.clients.some(c => !c.endedAt)) { showToast(t('Сначала добавьте клиента')); openClientModal(); return; }
   if (voiceRec) { stopVoice(); return; } // повторное нажатие — закончить и разобрать сказанное
 
   const rec = new SpeechRec();
@@ -2175,7 +2243,7 @@ function startVoice() {
 }
 
 function applyVoiceEntry(heard) {
-  const r = window.VoiceParse.parseVoiceEntry(heard, state.clients, new Date());
+  const r = window.VoiceParse.parseVoiceEntry(heard, state.clients.filter(c => !c.endedAt), new Date());
   openPaymentModal({ presetClientId: r.client ? r.client.id : undefined });
 
   const echo = document.getElementById('voiceEcho');
@@ -2226,6 +2294,11 @@ document.getElementById('btnDetailAddPayment').addEventListener('click', () => {
 document.getElementById('btnDetailEditClient').addEventListener('click', () => {
   closeModals();
   openClientModal(detailClientId);
+});
+document.getElementById('btnDetailEndClient').addEventListener('click', () => {
+  const c = getClient(detailClientId);
+  if (!c) return;
+  if (c.endedAt) resumeClient(detailClientId); else endClientWithConfirm(detailClientId);
 });
 document.getElementById('btnDetailDeleteClient').addEventListener('click', () => {
   deleteClientWithConfirm(detailClientId);
